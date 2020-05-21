@@ -78,7 +78,7 @@ function {:inline} SingletonNode(node: Node): NodeSet { NoNodes()[node := true] 
 function Cardinality(q: NodeSet): int;
 axiom Cardinality(NoNodes()) == 0;
 
-function {:inline} IsQuorum(ns: NodeSet): bool {
+function IsQuorum(ns: NodeSet): bool {
   2 * Cardinality(ns) > numNodes &&
   (forall n: Node :: ns[n] ==> Node(n))
 }
@@ -99,7 +99,7 @@ axiom (forall r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo :: { MaxRou
   (
     var ret := MaxRound(r, ns, voteInfo);
     0 <= ret && ret < r &&
-    (forall r': Round :: ret < r' && r' < r && is#SomeVoteInfo(voteInfo[r']) ==> IsDisjoint(ns, ns#SomeVoteInfo(voteInfo[r']))) &&
+    (forall r': Round :: {voteInfo[r']} {triggerRound(r')} ret < r' && r' < r && is#SomeVoteInfo(voteInfo[r']) ==> IsDisjoint(ns, ns#SomeVoteInfo(voteInfo[r']))) &&
     (Round(ret) ==> is#SomeVoteInfo(voteInfo[ret]) && !IsDisjoint(ns, ns#SomeVoteInfo(voteInfo[ret])))
   )
 );
