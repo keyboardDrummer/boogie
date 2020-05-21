@@ -6,7 +6,7 @@ modifies pendingAsyncs;
   assert Init(rs, joinedNodes, voteInfo, decision, pendingAsyncs);
   assert triggerRound(0);
   assume 0 <= numRounds;
-  assume triggerRound(numRounds);
+  assume triggerNumRounds(numRounds);
   PAs := (lambda pa: PA :: if is#StartRound_PA(pa) && round#StartRound_PA(pa) == round_lin#StartRound_PA(pa) && Round(round#StartRound_PA(pa)) && round#StartRound_PA(pa) <= numRounds then 1 else 0);
   pendingAsyncs := PAs;
 }

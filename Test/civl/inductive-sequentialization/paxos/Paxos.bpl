@@ -239,4 +239,5 @@ function {:inline}{:linear "perm"} VoteResponseChannelCollector (permVoteChannel
 //// Trigger dummies
 
 function triggerRound(r: Round) : bool { true }
+function triggerNumRounds(r: Round) : bool { true }
 function triggerNode(n: Node) : bool { true }

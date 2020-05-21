@@ -22,7 +22,7 @@ modifies pendingAsyncs;
   assert Init(rs, joinedNodes, voteInfo, decision, pendingAsyncs);
   assert triggerRound(0);
   assume 0 <= numRounds;
-  assume triggerRound(numRounds);
+  assume triggerNumRounds(numRounds);
   PAs := (lambda pa: PA :: if is#StartRound_PA(pa) && round#StartRound_PA(pa) == round_lin#StartRound_PA(pa) && Round(round#StartRound_PA(pa)) && round#StartRound_PA(pa) <= numRounds then 1 else 0);
   pendingAsyncs := PAs;
 }
@@ -76,45 +76,40 @@ modifies joinedNodes, voteInfo, decision, pendingAsyncs;
   // finished and k+1 is the round that currently executes), and similarly the
   // existentially quantified m denotes the number of nodes that already
   // finished in the current round.
-  assume (exists k, numRounds: int :: {triggerRound(k), triggerRound(numRounds)} 0 <= k && k <= numRounds && triggerRound(numRounds) &&
-    if k == numRounds then
-    (
-      PAs == NoPAs()
+  assume
+    PAs == NoPAs()
+    ||
+    (exists k, numRounds: int :: {triggerRound(k), triggerNumRounds(numRounds)}
+      0 <= k && k < numRounds && triggerNumRounds(numRounds) &&
+      PAs == FirstCasePAs(k, numRounds) &&
+      choice == StartRound_PA(k+1, k+1) &&
+      (forall r: Round :: r < 1 || r > k ==> joinedNodes[r] == NoNodes()) &&
+      (forall r: Round :: r < 1 || r > k ==> is#NoneVoteInfo(voteInfo[r])) &&
+      (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r]))
     )
-    else
-    (
-      (
-        PAs == FirstCasePAs(k, numRounds) &&
-        choice == StartRound_PA(k+1, k+1) &&
-        (forall r: Round :: r < 1 || r > k ==> joinedNodes[r] == NoNodes()) &&
-        (forall r: Round :: r < 1 || r > k ==> is#NoneVoteInfo(voteInfo[r])) &&
-        (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r]))
-      )
-      ||
-      (
-        (forall r: Round :: r < 1 || r > k+1 ==> joinedNodes[r] == NoNodes()) &&
-        (forall r: Round :: r < 1 || r > k ==> is#NoneVoteInfo(voteInfo[r])) &&
-        (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r])) &&
-        (exists m: Node :: {triggerNode(m)} 0 <= m && m <= numNodes &&
-          (forall n: Node :: n < 1 || n > m ==> !joinedNodes[k+1][n]) &&
-          PAs == SecondCasePAs(k, m, numRounds) &&
-          choice == SecondCaseChoice(k, m)
-        )
-      )
-      ||
-      (
-        is#SomeVoteInfo(voteInfo[k+1]) &&
-        (forall r: Round :: r < 1 || r > k+1 ==> joinedNodes[r] == NoNodes()) &&
-        (forall r: Round :: r < 1 || r > k+1 ==> is#NoneVoteInfo(voteInfo[r])) &&
-        (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r])) &&
-        (exists m: Node :: {triggerNode(m)} 0 <= m && m <= numNodes &&
-          (forall n: Node :: n < 1 || n > m ==> !ns#SomeVoteInfo(voteInfo[k+1])[n]) &&
-          PAs == ThirdCasePAs(k, m, value#SomeVoteInfo(voteInfo[k+1]), numRounds) &&
-          choice == ThirdCaseChoice(k, m, value#SomeVoteInfo(voteInfo[k+1]))
-        )
-      )
+    ||
+    (exists k, numRounds: int, m: Node :: {triggerRound(k), triggerNumRounds(numRounds), triggerNode(m)}
+      0 <= k && k < numRounds && triggerNumRounds(numRounds) &&
+      (forall r: Round :: r < 1 || r > k+1 ==> joinedNodes[r] == NoNodes()) &&
+      (forall r: Round :: r < 1 || r > k ==> is#NoneVoteInfo(voteInfo[r])) &&
+      (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r])) &&
+      0 <= m && m <= numNodes &&
+      (forall n: Node :: n < 1 || n > m ==> !joinedNodes[k+1][n]) &&
+      PAs == SecondCasePAs(k, m, numRounds) &&
+      choice == SecondCaseChoice(k, m)
     )
-  );
+    ||
+    (exists k, numRounds: int, m: Node :: {triggerRound(k), triggerNumRounds(numRounds), triggerNode(m)}
+      0 <= k && k < numRounds && triggerNumRounds(numRounds) &&
+      is#SomeVoteInfo(voteInfo[k+1]) &&
+      (forall r: Round :: r < 1 || r > k+1 ==> joinedNodes[r] == NoNodes()) &&
+      (forall r: Round :: r < 1 || r > k+1 ==> is#NoneVoteInfo(voteInfo[r])) &&
+      (forall r: Round :: r < 1 || r > k ==> is#NoneValue(decision[r])) &&
+      0 <= m && m <= numNodes &&
+      (forall n: Node :: n < 1 || n > m ==> !ns#SomeVoteInfo(voteInfo[k+1])[n]) &&
+      PAs == ThirdCasePAs(k, m, value#SomeVoteInfo(voteInfo[k+1]), numRounds) &&
+      choice == ThirdCaseChoice(k, m, value#SomeVoteInfo(voteInfo[k+1]))
+    );
 
   // If there was a decision for some value, then there must have been a
   // proposal of the same value and a quorum of nodes that voted for it.
