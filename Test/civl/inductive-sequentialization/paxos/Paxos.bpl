@@ -78,10 +78,8 @@ function {:inline} SingletonNode(node: Node): NodeSet { NoNodes()[node := true] 
 function Cardinality(q: NodeSet): int;
 axiom Cardinality(NoNodes()) == 0;
 
-function IsQuorum(ns: NodeSet): bool {
-  2 * Cardinality(ns) > numNodes &&
-  (forall n: Node :: ns[n] ==> Node(n))
-}
+function IsQuorum(ns: NodeSet): bool;
+axiom (forall ns: NodeSet :: IsQuorum(ns) ==> 2 * Cardinality(ns) > numNodes);
 
 function {:inline} IsSubset(ns1:NodeSet, ns2:NodeSet) : bool {
   MapImpNode(ns1, ns2) == MapConstNode(true)
@@ -94,6 +92,7 @@ function {:inline} IsDisjoint(ns1:NodeSet, ns2:NodeSet) : bool {
 // MaxRound(r, ns, voteInfo) returns the highest round less than r that some node in ns voted for.
 // If no node in ns has voted for a round less than r, then it returns 0.
 function MaxRound(r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo): int;
+// This axiom is used only for IS_step_A_Paxos
 axiom (forall r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo, r': Round :: { MaxRound(r, ns, voteInfo), voteInfo[r'] }
   Round(r) ==>
   (
@@ -101,6 +100,7 @@ axiom (forall r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo, r': Round 
     0 <= ret && ret < r' && r' < r && is#SomeVoteInfo(voteInfo[r']) ==> IsDisjoint(ns, ns#SomeVoteInfo(voteInfo[r']))
   )
 );
+// This axiom is used only for Commutativity_Checker_A_Propose_A_Propose'
 axiom (forall r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo :: { MaxRound(r, ns, voteInfo) }
   Round(r) ==>
   (
@@ -109,6 +109,7 @@ axiom (forall r: Round, ns: NodeSet, voteInfo: [Round]OptionVoteInfo :: { MaxRou
     (Round(ret) ==> is#SomeVoteInfo(voteInfo[ret]) && !IsDisjoint(ns, ns#SomeVoteInfo(voteInfo[ret])))
   )
 );
+
 function {:inline} Lemma_MaxRound_InitVote(voteInfo: [Round]OptionVoteInfo, r: Round, r': Round) : bool
 {
   (forall ns: NodeSet, v': Value ::

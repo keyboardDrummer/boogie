@@ -9,4 +9,4 @@ for perm in itertools.permutations(files):
     args = ' '.join([s + '.bpl' for s in perm])
     out = 'data/' + '_'.join(perm)
     print(f'echo {out}')
-    print(f'/usr/bin/time --format="%e" --output={out}.time boogie -nologo -useArrayTheory -trace {args} > {out}.trace')
+    print(f'gtime --format="%e" --output={out}.time dotnet ../../../../Source/BoogieDriver/bin/Debug/netcoreapp3.1/BoogieDriver.dll -nologo -useArrayTheory -trace {args} > {out}.trace')
