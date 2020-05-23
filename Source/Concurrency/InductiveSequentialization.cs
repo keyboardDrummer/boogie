@@ -54,7 +54,7 @@ namespace Microsoft.Boogie
             var subst = GetSubstitution(inputAction, invariantAction);
             List<Cmd> cmds = GetGateAsserts(inputAction, subst).ToList<Cmd>();
             cmds.Add(GetCallCmd(inputAction));
-            var blocks = new List<Block> { new Block(Token.NoToken, "init", cmds, CmdHelper.ReturnCmd) };
+            var blocks = new List<Block> { new Block(Token.NoToken, checkName, cmds, CmdHelper.ReturnCmd) };
 
             return GetCheckerTuple(requires, ensures, new List<Variable>(), blocks);
         }
@@ -73,76 +73,72 @@ namespace Microsoft.Boogie
             List<Cmd> cmds = GetGateAsserts(invariantAction, null).ToList<Cmd>();
             cmds.Add(GetCallCmd(invariantAction));
             cmds.Add(new AssumeCmd(Token.NoToken, PendingAsyncsEliminatedExpr));
-            var blocks = new List<Block> { new Block(Token.NoToken, "init", cmds, CmdHelper.ReturnCmd) };
+            var blocks = new List<Block> { new Block(Token.NoToken, checkName, cmds, CmdHelper.ReturnCmd) };
 
             return GetCheckerTuple(requires, ensures, new List<Variable>(), blocks);
         }
 
-        public Tuple<Procedure, Implementation> GenerateStepChecker(Function pendingAsyncAdd)
+        public Tuple<Procedure, Implementation> GenerateChoiceChecker()
+        {
+            this.checkName = "choice";
+            var requires = invariantAction.gate.Select(g => new Requires(false, g.Expr)).ToList();
+            var ensures = new List<Ensures> {
+                new Ensures(false, ElimPendingAsyncExpr(choice))
+                { ErrorData = $"Failed to validate choice in IS of {inputAction.proc.Name}" }
+            };
+
+            List<Cmd> cmds = new List<Cmd>();
+            cmds.Add(GetCallCmd(invariantAction));
+            cmds.Add(new AssumeCmd(Token.NoToken, ExistsElimPendingAsyncExpr));
+            var blocks = new List<Block> { new Block(Token.NoToken, checkName, cmds, CmdHelper.ReturnCmd) };
+
+            return GetCheckerTuple(requires, ensures, new List<Variable>(), blocks);
+        }
+
+        public Tuple<Procedure, Implementation> GenerateStepChecker(AtomicAction pendingAsync, Function pendingAsyncAdd)
         {
             this.checkName = "step";
             var requires = invariantAction.gate.Select(g => new Requires(false, g.Expr)).ToList();
             var ensures = new List<Ensures> { GetEnsures(GetTransitionRelation(invariantAction)) };
             var locals = new List<Variable>();
-            if (elim.Values.Any(a => a.HasPendingAsyncs))
+            
+            if (!HasChoice)
+            {
+                locals.Add(choice.Decl);
+            }
+
+            List<Cmd> cmds = new List<Cmd>();
+            cmds.Add(GetCallCmd(invariantAction));
+            cmds.Add(CmdHelper.AssumeCmd(ExprHelper.FunctionCall(pendingAsync.pendingAsyncCtor.membership, choice)));
+            cmds.Add(CmdHelper.AssumeCmd(Expr.Gt(Expr.Select(PAs, choice), Expr.Literal(0))));
+            cmds.Add(RemoveChoice);
+            
+            AtomicAction abs = elim[pendingAsync];
+            Dictionary<Variable, Expr> map = new Dictionary<Variable, Expr>();
+            List<Expr> inputExprs = new List<Expr>();
+            for (int i = 0; i < abs.impl.InParams.Count; i++)
+            {
+                var pendingAsyncParam = ExprHelper.FunctionCall(pendingAsync.pendingAsyncCtor.selectors[i], choice);
+                map[abs.impl.InParams[i]] = pendingAsyncParam;
+                inputExprs.Add(pendingAsyncParam);
+            }
+            var subst = Substituter.SubstitutionFromHashtable(map);
+            cmds.AddRange(GetGateAsserts(abs, subst));
+
+            List<IdentifierExpr> outputVars = new List<IdentifierExpr>();
+            if (abs.HasPendingAsyncs)
             {
                 locals.Add(newPAs.Decl);
+                outputVars.Add(newPAs);
             }
-
-            List<Block> blocks = new List<Block>();
-            foreach (var pendingAsync in elim.Keys)
+            cmds.Add(CmdHelper.CallCmd(abs.proc, inputExprs, outputVars));
+            if (abs.HasPendingAsyncs)
             {
-                AtomicAction abs = elim[pendingAsync];
-
-                Dictionary<Variable, Expr> map = new Dictionary<Variable, Expr>();
-                List<Expr> inputExprs = new List<Expr>();
-                for (int i = 0; i < abs.impl.InParams.Count; i++)
-                {
-                    var pendingAsyncParam = ExprHelper.FunctionCall(pendingAsync.pendingAsyncCtor.selectors[i], choice);
-                    map[abs.impl.InParams[i]] = pendingAsyncParam;
-                    inputExprs.Add(pendingAsyncParam);
-                }
-                var subst = Substituter.SubstitutionFromHashtable(map);
-                List<IdentifierExpr> outputVars = new List<IdentifierExpr>();
-                if (abs.HasPendingAsyncs)
-                {
-                    outputVars.Add(newPAs);
-                }
-
-                List<Cmd> cmds = new List<Cmd>();
-                cmds.Add(CmdHelper.AssumeCmd(ExprHelper.FunctionCall(pendingAsync.pendingAsyncCtor.membership, choice)));
-                cmds.AddRange(GetGateAsserts(abs, subst));
-                cmds.Add(CmdHelper.CallCmd(abs.proc, inputExprs, outputVars));
-                if (abs.HasPendingAsyncs)
-                {
-                    cmds.Add(AddNewPAs(pendingAsyncAdd));
-                }
-                var block = new Block(Token.NoToken, pendingAsync.proc.Name, cmds, CmdHelper.ReturnCmd);
-                blocks.Add(block);
+                cmds.Add(AddNewPAs(pendingAsyncAdd));
             }
-
-            {
-                List<Cmd> cmds = new List<Cmd>();
-                cmds.Add(GetCallCmd(invariantAction));
-                if (HasChoice)
-                {
-                    cmds.Add(new AssumeCmd(Token.NoToken, ValidChoiceExpr));
-                    cmds.Add(
-                        new AssertCmd(Token.NoToken, ElimPendingAsyncExpr(choice))
-                        { ErrorData = $"Failed to validate choice in IS of {inputAction.proc.Name}" }
-                    );
-                }
-                else
-                {
-                    locals.Add(choice.Decl);
-                    cmds.Add(new AssumeCmd(Token.NoToken, ElimPendingAsyncExpr(choice)));
-                }
-                cmds.Add(RemoveChoice);
-                var initBlock = new Block(Token.NoToken, "init", cmds, new GotoCmd(Token.NoToken, blocks.ToList()));
-                blocks.Insert(0, initBlock);
-            }
-
-            return GetCheckerTuple(requires, ensures, locals, blocks);
+            var blocks = new List<Block> { new Block(Token.NoToken, pendingAsync.proc.Name, cmds, CmdHelper.ReturnCmd) };
+            
+            return GetCheckerTuple(requires, ensures, locals, blocks, "_" + abs.proc.Name);
         }
 
         private CallCmd GetCallCmd(AtomicAction callee)
@@ -182,9 +178,9 @@ namespace Microsoft.Boogie
         }
 
         private Tuple<Procedure, Implementation> GetCheckerTuple
-        (List<Requires> requires, List<Ensures> ensures, List<Variable> locals, List<Block> blocks)
+        (List<Requires> requires, List<Ensures> ensures, List<Variable> locals, List<Block> blocks, string suffix = "")
         {
-            var proc = new Procedure(Token.NoToken, $"IS_{checkName}_{inputAction.proc.Name}", new List<TypeVariable>(),
+            var proc = new Procedure(Token.NoToken, $"IS_{checkName}_{inputAction.proc.Name}{suffix}", new List<TypeVariable>(),
                 invariantAction.impl.InParams, invariantAction.impl.OutParams, requires, modifies, ensures);
             var impl = new Implementation(Token.NoToken, proc.Name, new List<TypeVariable>(),
                 proc.InParams, proc.OutParams, locals, blocks)
@@ -196,7 +192,7 @@ namespace Microsoft.Boogie
 
         private Type PendingAsyncType => PendingAsyncMultisetType.Arguments[0];
 
-        private bool HasChoice => invariantAction.hasChoice;
+        public bool HasChoice => invariantAction.hasChoice;
 
         private IdentifierExpr PAs => Expr.Ident(HasChoice ? invariantAction.impl.OutParams[invariantAction.impl.OutParams.Count - 2] : invariantAction.impl.OutParams.Last());
 
@@ -226,7 +222,7 @@ namespace Microsoft.Boogie
             }
         }
 
-        private Expr ValidChoiceExpr
+        private Expr ExistsElimPendingAsyncExpr
         {
             get
             {
@@ -314,15 +310,16 @@ namespace Microsoft.Boogie
         {
             foreach (var x in ctc.inductiveSequentializations)
             {
-                var t = x.GenerateBaseCaseChecker();
-                ctc.program.AddTopLevelDeclaration(t.Item1);
-                ctc.program.AddTopLevelDeclaration(t.Item2);
-                t = x.GenerateConclusionChecker();
-                ctc.program.AddTopLevelDeclaration(t.Item1);
-                ctc.program.AddTopLevelDeclaration(t.Item2);
-                t = x.GenerateStepChecker(ctc.pendingAsyncAdd);
-                ctc.program.AddTopLevelDeclaration(t.Item1);
-                ctc.program.AddTopLevelDeclaration(t.Item2);
+                AddCheck(ctc, x.GenerateBaseCaseChecker());
+                AddCheck(ctc, x.GenerateConclusionChecker());
+                if (x.HasChoice)
+                {
+                    AddCheck(ctc, x.GenerateChoiceChecker());
+                }
+                foreach (var elim in x.elim.Keys)
+                {
+                    AddCheck(ctc, x.GenerateStepChecker(elim, ctc.pendingAsyncAdd));
+                }
             }
 
             var absChecks = ctc.inductiveSequentializations.SelectMany(x => x.elim).Where(kv => kv.Key != kv.Value).Distinct();
@@ -357,6 +354,12 @@ namespace Microsoft.Boogie
                 ctc.program.AddTopLevelDeclaration(proc);
                 ctc.program.AddTopLevelDeclaration(impl);
             }
+        }
+
+        private static void AddCheck(CivlTypeChecker ctc, Tuple<Procedure, Implementation> t)
+        {
+            ctc.program.AddTopLevelDeclaration(t.Item1);
+            ctc.program.AddTopLevelDeclaration(t.Item2);
         }
     }
 }
