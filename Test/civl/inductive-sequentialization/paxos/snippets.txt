@@ -1,0 +1,5 @@
+grep "finish" data/* --no-filename | sort | uniq -c
+
+grep "Abstraction.*inline.*Entry" data/* --no-filename | sort | uniq -c
+
+cat data/*.time | sort -n | awk '{s+=$1} END {print s}'
