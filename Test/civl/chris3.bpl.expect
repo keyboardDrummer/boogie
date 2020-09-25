@@ -1,2 +1,3 @@
-chris3.bpl(19,2): Error: The atomic actions in the parallel call must be all right movers or all left movers
-1 type checking errors detected in chris3.bpl
+chris3.bpl(16,2): Error: Mover types in parallel call do not match (left)*(non)?(right)* at layer 95
+chris3.bpl(14,30): Error: Implementation P fails atomicity check at layer 95. Transactions must be separated by yields.
+2 type checking errors detected in chris3.bpl

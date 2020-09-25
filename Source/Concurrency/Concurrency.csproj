@@ -54,6 +54,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GlobalSnapshotInstrumentation.cs" />
+    <Compile Include="LinearPermissionInstrumentation.cs" />
+    <Compile Include="NoninterferenceChecker.cs" />
     <Compile Include="YieldingProcInstrumentation.cs" />
     <Compile Include="LinearTypeChecker.cs" />
     <Compile Include="MoverCheck.cs" />
@@ -65,9 +67,9 @@
     <Compile Include="TransitionRelationComputation.cs" />
     <Compile Include="NoninterferenceInstrumentation.cs" />
     <Compile Include="YieldingProcDuplicator.cs" />
-    <Compile Include="YieldTypeChecker.cs" />
+    <Compile Include="YieldSufficiencyTypeChecker.cs" />
     <Compile Include="CivlUtil.cs" />
-    <Compile Include="Witnesses.cs" />
+    <Compile Include="CommutativityHints.cs" />
     <Compile Include="CivlCoreTypes.cs" />
     <Compile Include="InductiveSequentialization.cs" />
     <Compile Include="PendingAsyncChecker.cs" />
@@ -79,9 +81,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Basetypes\Basetypes.csproj">
+    <ProjectReference Include="..\BaseTypes\BaseTypes.csproj">
       <Project>{43dfad18-3e35-4558-9be2-caff6b5ba8a0}</Project>
-      <Name>Basetypes</Name>
+      <Name>BaseTypes</Name>
     </ProjectReference>
     <ProjectReference Include="..\Core\Core.csproj">
       <Project>{b230a69c-c466-4065-b9c1-84d80e76d802}</Project>

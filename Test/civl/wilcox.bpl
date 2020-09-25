@@ -1,8 +1,7 @@
-// RUN: %boogie -noinfer -useArrayTheory "%s" > "%t"
+// RUN: %boogie -useArrayTheory "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-procedure {:layer 1} GhostRead() returns (oldx: int)
-ensures x == oldx;
+procedure {:intro} {:layer 1} GhostRead() returns (oldx: int)
 {
    oldx := x;
 }
@@ -20,7 +19,6 @@ requires {:layer 1} n >= 0;
 {
     var i: int;
     var {:layer 1} oldx: int;
-    yield;
 
     call oldx := GhostRead();
     i := 0;
@@ -33,8 +31,6 @@ requires {:layer 1} n >= 0;
     }
 
     assert {:layer 1} i == n;
-
-    yield;
 }
 
 procedure {:both} {:layer 2} AtomicSlowAdd(n: int)

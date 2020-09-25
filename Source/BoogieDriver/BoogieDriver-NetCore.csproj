@@ -11,7 +11,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>BoogieDriver</AssemblyName>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>boogie</ToolCommandName>
@@ -19,10 +18,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AbsInt\AbsInt-NetCore.csproj" />
-    <ProjectReference Include="..\Basetypes\Basetypes-NetCore.csproj" />
+    <ProjectReference Include="..\BaseTypes\BaseTypes-NetCore.csproj" />
     <ProjectReference Include="..\CodeContractsExtender\CodeContractsExtender-NetCore.csproj" />
     <ProjectReference Include="..\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\Doomed\Doomed-NetCore.csproj" />
     <ProjectReference Include="..\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
     <ProjectReference Include="..\Graph\Graph-NetCore.csproj" />
     <ProjectReference Include="..\Houdini\Houdini-NetCore.csproj" />

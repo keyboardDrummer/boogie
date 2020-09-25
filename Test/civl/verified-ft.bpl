@@ -1,10 +1,10 @@
 /*
 
 Copyright (c) 2017, Cormac Flanagan (University of California, Santa Cruz)
-                    Stephen Freund (Williams College) 
+                    Stephen Freund (Williams College)
                     James Wilcox (University of Washington)
 
-All rights reserved.  
+All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -41,11 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Proof of VerifiedFT correctness in CIVL.
  */
 
-// RUN: %boogie -noinfer -useArrayTheory "%s" > "%t"
+// RUN: %boogie -useArrayTheory "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*
- * Tid 
+ * Tid
  */
 type Tid = int;  // make int so you can iterate over Tids
 const unique nil: Tid;
@@ -54,7 +54,7 @@ function {:inline} ValidTid(tid : Tid): bool {
   tid != nil && tid >= 0
 }
 
-/* 
+/*
  * datatype Epoch = Tid*Clock
  */
 type{:datatype} Epoch;
@@ -92,7 +92,7 @@ function {:inline} EpochInit(tid: Tid): Epoch {
  */
 type VC = [Tid]Epoch;
 
-// primite accessors to array
+// primitive accessors to array
 // len of VC is stored at -1.
 function {:inline} VCArrayLen(vc: VC): int { clock#epoch(vc[-1]) }
 function {:inline} VCArraySetLen(vc: VC, n: int): VC { vc[-1 := epoch(-1,n)] }
@@ -105,7 +105,7 @@ function {:inline} VCArrayGet(vc: VC, i: int): Epoch { vc[i] }
 type Lock;
 type Var;
 
-/* 
+/*
  * datatype Shadowable = tid | lock | var
  */
 type{:datatype} Shadowable;
@@ -121,7 +121,7 @@ var {:layer 0,30} sx.R        : [Var]Epoch;
 /*
  * Trace Invariant Support
  */
-type ThreadStatus = int;  
+type ThreadStatus = int;
 function{:inline} UNUSED(): ThreadStatus { 0 }
 function{:inline} NEW(): ThreadStatus { 1 }
 function{:inline} RUNNING(): ThreadStatus { 2 }
@@ -149,7 +149,7 @@ function {:inline false} VarsRepOk(w: [Var]Epoch, r: [Var]Epoch ): bool {
   (forall v: Var :: r[v] == SHARED || (tid#epoch(r[v]) >= 0 && tid#epoch(r[v]) != nil))
 }
 
-function {:inline false} VCRepOk(vc: VC): bool { 
+function {:inline false} VCRepOk(vc: VC): bool {
   VCArrayLen(vc) >= 0 &&
   (forall j: int :: {vc[j]} 0 <= j && j < VCArrayLen(vc) ==> clock#epoch(vc[j]) >= 0) &&
   (forall j: int :: {vc[j]} 0 <= j && j < VCArrayLen(vc) ==> tid#epoch(vc[j]) == j) &&
@@ -174,15 +174,15 @@ function {:inline} LocksPreserved({:linear "tid" } tid: Tid, oldLocks: [Shadowab
 }
 
 function {:inline} SharedInvPreserved(oldR: [Var] Epoch, r: [Var] Epoch): bool {
-  (forall x: Var :: oldR[x] == SHARED ==> r[x] == SHARED) 
+  (forall x: Var :: oldR[x] == SHARED ==> r[x] == SHARED)
 }
 
 function {:inline} FTPreserved({:linear "tid" } tid:Tid,
                                oldLocks: [Shadowable] Tid, oldVcs: [Shadowable]VC, oldW: [Var]Epoch, oldR: [Var]Epoch,
                                   locks: [Shadowable] Tid,    vcs: [Shadowable]VC,    w: [Var]Epoch,    r: [Var]Epoch): bool {
-  LocksPreserved(tid, oldLocks, locks) && 
+  LocksPreserved(tid, oldLocks, locks) &&
   SharedInvPreserved(oldR, r) &&
-  (forall s: Shadowable :: oldLocks[s] == tid ==> vcs[s] == oldVcs[s]) && 
+  (forall s: Shadowable :: oldLocks[s] == tid ==> vcs[s] == oldVcs[s]) &&
   (forall x: Var :: oldLocks[ShadowableVar(x)] == tid ==> r[x] == oldR[x]) &&
   (forall x: Var :: oldLocks[ShadowableVar(x)] == tid ==> w[x] == oldW[x])
 }
@@ -190,7 +190,7 @@ function {:inline} FTPreserved({:linear "tid" } tid:Tid,
 /****** Layer 0  ******/
 
 // VarState Lock
-procedure {:yields}  {:layer 0} {:refines "AtomicAcquireVarLock"} AcquireVarLock({:linear "tid"} tid: Tid, x : Var);
+procedure {:yields} {:layer 0} {:refines "AtomicAcquireVarLock"} AcquireVarLock({:linear "tid"} tid: Tid, x : Var);
 procedure {:right} {:layer 1,20} AtomicAcquireVarLock({:linear "tid"} tid: Tid, x : Var)
 modifies shadow.Lock;
 { assert ValidTid(tid); assume shadow.Lock[ShadowableVar(x)] == nil; shadow.Lock[ShadowableVar(x)] := tid; }
@@ -269,9 +269,9 @@ procedure {:yields} {:layer 0} {:refines "AtomicVCSetElemShared"} VCSetElemShare
 procedure {:both} {:layer 1,20} AtomicVCSetElemShared({:linear "tid" } tid: Tid, x : Var, e: Epoch)
 modifies shadow.VC;
 {
-   assert sx.R[x] == SHARED; 
-   assert ValidTid(tid); 
-   assert (shadow.Lock[ShadowableVar(x)] == tid); 
+   assert sx.R[x] == SHARED;
+   assert ValidTid(tid);
+   assert (shadow.Lock[ShadowableVar(x)] == tid);
    shadow.VC[ShadowableVar(x)][tid] := e;
    shadow.VC[ShadowableVar(x)] := VCArraySetLen(shadow.VC[ShadowableVar(x)], max(VCArrayLen(shadow.VC[ShadowableVar(x)]),tid+1));
 }
@@ -280,9 +280,9 @@ procedure {:yields} {:layer 0} {:refines "AtomicVCSetElem"} VCSetElem({:linear "
 procedure {:both} {:layer 1,20} AtomicVCSetElem({:linear "tid" } tid: Tid, r: Shadowable, i: int, e: Epoch)
 modifies shadow.VC;
 {
-   assert is#ShadowableVar(r) ==> sx.R[x#ShadowableVar(r)] != SHARED; 
-   assert ValidTid(tid); 
-   assert (shadow.Lock[r] == tid); 
+   assert is#ShadowableVar(r) ==> sx.R[x#ShadowableVar(r)] != SHARED;
+   assert ValidTid(tid);
+   assert (shadow.Lock[r] == tid);
    shadow.VC[r][i] := e;
    shadow.VC[r] := VCArraySetLen(shadow.VC[r], max(VCArrayLen(shadow.VC[r]),i+1));
 }
@@ -291,28 +291,29 @@ procedure {:yields} {:layer 0} {:refines "AtomicVCInit"} VCInit({:linear "tid" }
 procedure {:both} {:layer 1,20} AtomicVCInit({:linear "tid" } tid: Tid, r: Shadowable)
 modifies shadow.VC;
 {
-   assert ValidTid(tid); 
-   assert is#ShadowableVar(r) ==> sx.R[x#ShadowableVar(r)] != SHARED; 
-   assert (shadow.Lock[r] == tid); 
+   assert ValidTid(tid);
+   assert is#ShadowableVar(r) ==> sx.R[x#ShadowableVar(r)] != SHARED;
+   assert (shadow.Lock[r] == tid);
    shadow.VC[r] := VC.bottom();
 }
 
-
 /****** Layer 10 -> 20 ******/
 
- procedure {:yields} {:layer 10} Yield10({:linear "tid"} tid:Tid)
-     requires {:layer 10} ValidTid(tid);
-     requires {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-     ensures {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-     ensures {:layer 10} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-     ensures {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
- {
-   yield;
-   assert {:layer 10} ValidTid(tid);
-   assert {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-   assert {:layer 10} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-   assert {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
- }
+procedure {:yield_invariant} {:layer 10} Yield_FTRepOk_10();
+     requires FTRepOk(shadow.VC, sx.W, sx.R);
+
+procedure {:yield_invariant} {:layer 10} Yield_Lock_10({:linear "tid"} tid: Tid, v: Shadowable);
+requires ValidTid(tid);
+requires shadow.Lock[v] == tid;
+
+procedure {:yield_invariant} {:layer 10} Yield_FTPreserved_10({:linear "tid"} tid:Tid, old.shadow.Lock: [Shadowable]Tid, old.shadow.VC: [Shadowable]VC, old.sx.W: [Var]Epoch, old.sx.R: [Var]Epoch);
+     requires ValidTid(tid);
+     requires FTPreserved(tid, old.shadow.Lock, old.shadow.VC, old.sx.W, old.sx.R, shadow.Lock, shadow.VC, sx.W, sx.R);
+
+procedure {:yield_invariant} {:layer 10} Yield_VCPreserved_10({:linear "tid"} tid:Tid, v1: Shadowable, v2: Shadowable, old.shadow.Lock: [Shadowable]Tid, old.shadow.VC: [Shadowable]VC);
+requires ValidTid(tid);
+requires LocksPreserved(tid, old.shadow.Lock, shadow.Lock);
+requires (forall s: Shadowable :: s != v1 && s != v2 && old.shadow.Lock[s] == tid ==> old.shadow.VC[s] == shadow.VC[s]);
 
 procedure {:both} {:layer 11,20} AtomicVC.Leq({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable) returns (res: bool)
 {
@@ -325,42 +326,31 @@ procedure {:both} {:layer 11,20} AtomicVC.Leq({:linear "tid"} tid: Tid, v1: Shad
    res := (forall j : int :: {f(j)} 0 <= j && f(j) ==> EpochLeq(VCArrayGet(shadow.VC[v1], j), VCArrayGet(shadow.VC[v2], j)));
 }
 
-procedure {:yields} {:layer 10} {:refines "AtomicVC.Leq"} VC.Leq({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable) returns (res: bool)
-  requires {:layer 10} ValidTid(tid);
-  requires {:layer 10} shadow.Lock[v1] == tid;
-  requires {:layer 10} shadow.Lock[v2] == tid;
-  requires {:layer 10} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-  requires {:layer 10} is#ShadowableVar(v1) ==> sx.R[x#ShadowableVar(v1)] == SHARED;
-  requires {:layer 10} !is#ShadowableVar(v2);
-
-  ensures {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-  ensures {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
+procedure {:yields} {:layer 10} {:refines "AtomicVC.Leq"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_preserves "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+VC.Leq({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable) returns (res: bool)
 {
   var vc1, vc2: VC;
   var len1, len2 : int;
   var e1, e2: Epoch;
   var i: int;
 
-  call Yield10(tid);
-
   call len1 := VCGetSize(tid, v1);
   call len2 := VCGetSize(tid, v1);
 
   i := 0;
-  while (i < max(len1, len2)) 
+  while (i < max(len1, len2))
     invariant {:layer 10} 0 <= i;
     invariant {:layer 10} (forall j : int :: {f(j)}
          0 <= j && j < i && f(j) ==>
          EpochLeq(VCArrayGet(shadow.VC[v1], j), VCArrayGet(shadow.VC[v2], j)));
   {
-    call e1 := VCGetElem(tid, v1, i);    
-    call e2 := VCGetElem(tid, v2, i);    
+    call e1 := VCGetElem(tid, v1, i);
+    call e2 := VCGetElem(tid, v2, i);
     if (!EpochLeq(e1, e2)) {
       assert {:layer 10} f(i);
       res := false;
-      call Yield10(tid);
       return;
     }
 
@@ -368,7 +358,6 @@ procedure {:yields} {:layer 10} {:refines "AtomicVC.Leq"} VC.Leq({:linear "tid"}
   }
 
   res := true;
-  call Yield10(tid);
   return;
 }
 
@@ -395,19 +384,11 @@ modifies shadow.VC;
     }
 }
 
-procedure {:yields} {:layer 10} {:refines "AtomicVC.Copy"} VC.Copy({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable)
-  requires {:layer 10} ValidTid(tid);
-  requires {:layer 10} v1 != v2;
-  requires {:layer 10} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10} shadow.Lock[v1] == tid;
-  requires {:layer 10} shadow.Lock[v2] == tid;
-  requires {:layer 10} !is#ShadowableVar(v1);
-  requires {:layer 10} !is#ShadowableVar(v2);
-  requires {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10} (forall s: Shadowable :: s != v1 && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 10} {:refines "AtomicVC.Copy"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, v1, v1, old(shadow.Lock), old(shadow.VC)}
+VC.Copy({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable)
 {
   var len1, len2 : int;
   var e1, e2: Epoch;
@@ -415,8 +396,6 @@ procedure {:yields} {:layer 10} {:refines "AtomicVC.Copy"} VC.Copy({:linear "tid
 
   var {:layer 10} oldVC : [Shadowable] [Tid]Epoch;
   var {:layer 10} oldLock : [Shadowable] Tid;
-
-  call Yield10(tid);
 
   call oldLock, oldVC := GhostRead();
 
@@ -434,12 +413,10 @@ procedure {:yields} {:layer 10} {:refines "AtomicVC.Copy"} VC.Copy({:linear "tid
     invariant {:layer 10} (forall j : int :: 0 <= j && j < i      ==> VCArrayGet(shadow.VC[v1], j) == VCArrayGet(shadow.VC[v2], j));
     invariant {:layer 10} (forall j : int :: max(len1, len2) <=j  ==> VCArrayGet(shadow.VC[v1], j) == VCArrayGet(shadow.VC[v2], j));
   {
-    call e2 := VCGetElem(tid, v2, i);    
+    call e2 := VCGetElem(tid, v2, i);
     call VCSetElem(tid, v1, i, e2);
     i := i + 1;
   }
-
-  call Yield10(tid);
 }
 
 
@@ -461,18 +438,11 @@ modifies shadow.VC;
     assume shadow.VC == old(shadow.VC)[v1 := shadow.VC[v1]];
 }
 
-procedure {:yields} {:layer 10} {:refines "AtomicVC.Join"} VC.Join({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable)
-  requires {:layer 10} ValidTid(tid);
-  requires {:layer 10} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10} shadow.Lock[v1] == tid;
-  requires {:layer 10} shadow.Lock[v2] == tid;
-  requires {:layer 10} !is#ShadowableVar(v1);
-  requires {:layer 10} !is#ShadowableVar(v2);
-  requires {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10} (forall s: Shadowable :: s != v1 && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 10} {:refines "AtomicVC.Join"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, v1, v1, old(shadow.Lock), old(shadow.VC)}
+VC.Join({:linear "tid"} tid: Tid, v1: Shadowable, v2: Shadowable)
 {
   var len1, len2 : int;
   var e1, e2: Epoch;
@@ -480,8 +450,6 @@ procedure {:yields} {:layer 10} {:refines "AtomicVC.Join"} VC.Join({:linear "tid
 
   var {:layer 10} oldVC : [Shadowable] [Tid]Epoch;
   var {:layer 10} oldLock : [Shadowable] Tid;
-
-  call Yield10(tid);
 
   call oldLock, oldVC := GhostRead();
 
@@ -499,19 +467,15 @@ procedure {:yields} {:layer 10} {:refines "AtomicVC.Join"} VC.Join({:linear "tid
     invariant {:layer 10} (forall j : int :: 0 <= j && i <= j ==> VCArrayGet(shadow.VC[v1], j) == VCArrayGet(oldVC[v1], j));
     invariant {:layer 10} (forall j : int :: 0 <= j && j < i  ==> VCArrayGet(shadow.VC[v1], j) == EpochMax(VCArrayGet(oldVC[v1], j), VCArrayGet(shadow.VC[v2], j)));
   {
-    call e1 := VCGetElem(tid, v1, i);    
-    call e2 := VCGetElem(tid, v2, i);    
+    call e1 := VCGetElem(tid, v1, i);
+    call e2 := VCGetElem(tid, v2, i);
     call VCSetElem(tid, v1, i, EpochMax(e1, e2));
     i := i + 1;
   }
-
-  call Yield10(tid);
 }
 
 
-procedure {:layer 10} GhostRead() returns (lock : [Shadowable]Tid, data : [Shadowable] [Tid]Epoch)
-  ensures lock == shadow.Lock;
-  ensures data == shadow.VC;
+procedure {:intro} {:layer 10} GhostRead() returns (lock : [Shadowable]Tid, data : [Shadowable] [Tid]Epoch)
 {
   lock := shadow.Lock;
   data := shadow.VC;
@@ -530,52 +494,37 @@ modifies shadow.VC;
    shadow.VC[v] := shadow.VC[v][i := EpochInc(shadow.VC[v][i])];
 }
 
-procedure {:yields} {:layer 10} {:refines "AtomicVC.Inc"} VC.Inc({:linear "tid" } tid: Tid, v: Shadowable, i: int)
-  requires {:layer 10} ValidTid(tid);
-  requires {:layer 10} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10} shadow.Lock[v] == tid;
-  requires {:layer 10} !is#ShadowableVar(v);
-  requires {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-  requires {:layer 10} VCRepOk(shadow.VC[v]);
-  requires {:layer 10} i >= 0;
-
-  ensures {:layer 10} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10} VCRepOk(shadow.VC[v]);
-  ensures {:layer 10} (forall s: Shadowable :: s != v && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 10} {:refines "AtomicVC.Inc"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, v, v, old(shadow.Lock), old(shadow.VC)}
+VC.Inc({:linear "tid" } tid: Tid, v: Shadowable, i: int)
 {
   var e: Epoch;
 
-  call Yield10(tid);
-
   call e := VCGetElem(tid, v, i);
-
   call VCSetElem(tid, v, i, EpochInc(e));
-
-  call Yield10(tid);
 }
 
 
 
 /****** Layer 20 --> 30 ******/
 
+procedure {:yield_invariant} {:layer 20} Yield_FTRepOk_20();
+     requires FTRepOk(shadow.VC, sx.W, sx.R);
 
-procedure {:yields} {:layer 20} Yield20({:linear "tid"} tid:Tid)
-    requires {:layer 10,20} ValidTid(tid);
-    requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-    requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
+procedure {:yield_invariant} {:layer 20} Yield_Lock_20({:linear "tid"} tid: Tid, v: Shadowable);
+requires ValidTid(tid);
+requires shadow.Lock[v] == tid;
 
-    ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-    ensures {:layer 10,20} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-    ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-{
-    yield;
-    assert {:layer 10,20} ValidTid(tid);
-    assert {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-    assert {:layer 10,20} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-    assert {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-}
+procedure {:yield_invariant} {:layer 20} Yield_VCPreserved_20({:linear "tid"} tid:Tid, v1: Shadowable, v2: Shadowable, old.shadow.Lock: [Shadowable]Tid, old.shadow.VC: [Shadowable]VC);
+requires ValidTid(tid);
+requires LocksPreserved(tid, old.shadow.Lock, shadow.Lock);
+requires (forall s: Shadowable :: s != v1 && s != v2 && old.shadow.Lock[s] == tid ==> old.shadow.VC[s] == shadow.VC[s]);
 
+procedure {:yield_invariant} {:layer 20} Yield_FTPreserved_20({:linear "tid"} tid:Tid, old.shadow.Lock: [Shadowable]Tid, old.shadow.VC: [Shadowable]VC, old.sx.W: [Var]Epoch, old.sx.R: [Var]Epoch);
+    requires ValidTid(tid);
+    requires FTPreserved(tid, old.shadow.Lock, old.shadow.VC, old.sx.W, old.sx.R, shadow.Lock, shadow.VC, sx.W, sx.R);
 
 procedure {:atomic} {:layer 21,30} AtomicFork({:linear "tid"} tid:Tid, uid : Tid)
 modifies shadow.VC;
@@ -590,9 +539,9 @@ modifies shadow.VC;
 
     v1 := ShadowableTid(uid);
     v2 := ShadowableTid(tid);
-    
+
     havoc shadow.VC;
-    
+
     assume VCArrayLen(shadow.VC[v1]) == max(VCArrayLen(old(shadow.VC)[v1]),VCArrayLen(old(shadow.VC)[v2]));
     assume VCRepOk(shadow.VC[v1]);
     assume (forall j: int :: 0 <= j ==> VCArrayGet(shadow.VC[v1], j) == EpochMax(VCArrayGet(old(shadow.VC)[v1], j), VCArrayGet(old(shadow.VC)[v2], j)));
@@ -605,26 +554,17 @@ modifies shadow.VC;
     assume shadow.VC == old(shadow.VC)[v1 := shadow.VC[v1]][v2 := shadow.VC[v2]];
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicFork"} Fork({:linear "tid"} tid:Tid, uid : Tid)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} ValidTid(uid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(uid)] == tid;
-  requires {:layer 10,20} tid != uid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10,20} (forall s: Shadowable :: s != ShadowableTid(tid) && s != ShadowableTid(uid) ==>
-                           (old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]));
+procedure {:yields} {:layer 20} {:refines "AtomicFork"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, ShadowableTid(tid), ShadowableTid(uid), old(shadow.Lock), old(shadow.VC)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_20", tid, ShadowableTid(tid), ShadowableTid(uid), old(shadow.Lock), old(shadow.VC)}
+Fork({:linear "tid"} tid:Tid, uid : Tid)
 {
-  call Yield20(tid);
-
   call VC.Join(tid, ShadowableTid(uid), ShadowableTid(tid));
-
   call VC.Inc(tid, ShadowableTid(tid), tid);
-
-  call Yield20(tid);
 }
 
 
@@ -645,27 +585,22 @@ modifies shadow.VC;
     havoc shadow.VC;
     assume VCArrayLen(shadow.VC[v2]) == max(VCArrayLen(old(shadow.VC)[v1]),VCArrayLen(old(shadow.VC)[v2]));
     assume VCRepOk(shadow.VC[v2]);
-    assume (forall j: int :: 0 <= j ==> 
-        VCArrayGet(shadow.VC[v2], j) == 
+    assume (forall j: int :: 0 <= j ==>
+        VCArrayGet(shadow.VC[v2], j) ==
         EpochMax(VCArrayGet(old(shadow.VC)[v2], j), VCArrayGet(old(shadow.VC)[v1], j)));
     assume shadow.VC == old(shadow.VC)[v2 := shadow.VC[v2]];
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicJoin"} Join({:linear "tid"} tid:Tid, uid : Tid)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} ValidTid(uid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(uid)] == tid;
-  requires {:layer 10,20} tid != uid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10,20} (forall s: Shadowable :: s != ShadowableTid(tid) && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 20} {:refines "AtomicJoin"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, ShadowableTid(tid), ShadowableTid(tid), old(shadow.Lock), old(shadow.VC)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_20", tid, ShadowableTid(tid), ShadowableTid(tid), old(shadow.Lock), old(shadow.VC)}
+Join({:linear "tid"} tid:Tid, uid : Tid)
 {
-  call Yield20(tid);
   call VC.Join(tid, ShadowableTid(tid), ShadowableTid(uid));
-  call Yield20(tid);
 }
 
 
@@ -683,27 +618,22 @@ modifies shadow.VC;
     havoc shadow.VC;
     assume VCRepOk(shadow.VC[v1]);
     assume VCArrayLen(shadow.VC[v1]) == max(VCArrayLen(old(shadow.VC)[v1]),VCArrayLen(old(shadow.VC)[v2]));
-    assume (forall j: int :: 0 <= j ==> 
-        VCArrayGet(shadow.VC[v1], j) == 
+    assume (forall j: int :: 0 <= j ==>
+        VCArrayGet(shadow.VC[v1], j) ==
         EpochMax(VCArrayGet(old(shadow.VC)[v1], j), VCArrayGet(old(shadow.VC)[v2], j)));
     assume shadow.VC == old(shadow.VC)[v1 := shadow.VC[v1]];
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicAcquire"} Acquire({:linear "tid"} tid: Tid, l: Lock)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} shadow.Lock[ShadowableLock(l)] == tid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10,20} (forall s: Shadowable :: s != ShadowableTid(tid) && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 20} {:refines "AtomicAcquire"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, ShadowableTid(tid), ShadowableTid(tid), old(shadow.Lock), old(shadow.VC)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_20", tid, ShadowableTid(tid), ShadowableTid(tid), old(shadow.Lock), old(shadow.VC)}
+Acquire({:linear "tid"} tid: Tid, l: Lock)
 {
-  call Yield20(tid);
-
   call VC.Join(tid, ShadowableTid(tid), ShadowableLock(l));
-
-  call Yield20(tid);
 }
 
 procedure {:atomic} {:layer 21,30} AtomicRelease({:linear "tid"} tid: Tid, l: Lock)
@@ -720,7 +650,7 @@ modifies shadow.VC;
 
     havoc shadow.VC;
 
-    // Use the same strategy as in Copy's atomic spec.  
+    // Use the same strategy as in Copy's atomic spec.
     if (*) {
         assume VCRepOk(shadow.VC[v1]);
         assume VCArrayLen(shadow.VC[v1]) == max(VCArrayLen(old(shadow.VC)[v1]),VCArrayLen(old(shadow.VC)[v2]));
@@ -737,26 +667,20 @@ modifies shadow.VC;
     assume shadow.VC == old(shadow.VC)[v1 := shadow.VC[v1]][v2 := shadow.VC[v2]];
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicRelease"} Release({:linear "tid"} tid: Tid, l: Lock)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} shadow.Lock[ShadowableLock(l)] == tid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-  ensures {:layer 10,20} (forall s: Shadowable :: s != ShadowableTid(tid)  && s != ShadowableLock(l) && old(shadow.Lock)[s] == tid ==> old(shadow.VC)[s] == shadow.VC[s]);
+procedure {:yields} {:layer 20} {:refines "AtomicRelease"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_requires  "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_10", tid, ShadowableTid(tid), ShadowableLock(l), old(shadow.Lock), old(shadow.VC)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_ensures   "Yield_VCPreserved_20", tid, ShadowableTid(tid), ShadowableLock(l), old(shadow.Lock), old(shadow.VC)}
+Release({:linear "tid"} tid: Tid, l: Lock)
 {
   var sm : Shadowable;
   var st : Shadowable;
 
-  call Yield20(tid);
-
   call VC.Copy(tid, ShadowableLock(l), ShadowableTid(tid));
-
   call VC.Inc(tid, ShadowableTid(tid), tid);
-
-  call Yield20(tid);
 }
 
 
@@ -808,17 +732,15 @@ modifies sx.W;
              return;
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicWrite"} Write({:linear "tid"} tid:Tid, x : Var) returns (ok : bool)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
+procedure {:yields} {:layer 20} {:refines "AtomicWrite"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_preserves "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_Lock_20", tid, ShadowableTid(tid)}
+{:yield_preserves "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+Write({:linear "tid"} tid:Tid, x : Var) returns (ok : bool)
 {
   var e, w, vw, r, vr: Epoch;
-
-  call Yield20(tid);
 
   call e := ThreadStateGetE(tid);
 
@@ -827,25 +749,25 @@ procedure {:yields} {:layer 20} {:refines "AtomicWrite"} Write({:linear "tid"} t
     if (w == e) {
       // write same epoch
       ok := true;
-      call Yield20(tid);
       return;
     }
-   
-  call Yield20(tid);
+
+  par Yield_FTRepOk_10() | Yield_FTPreserved_10(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R));
+  par Yield_FTRepOk_20() | Yield_FTPreserved_20(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R));
 
   call AcquireVarLock(tid, x);
   call w := VarStateGetW(tid, x);
   call vw := VCGetElem(tid, ShadowableTid(tid), tid#epoch(w));
   if (!EpochLeq(w, vw)) {
     // write-write race
-    call ReleaseVarLock(tid, x); ok := false; call Yield20(tid); return;
+    call ReleaseVarLock(tid, x); ok := false; return;
   }
   call r := VarStateGetR(tid, x);
   if (r != SHARED) {
     call vr := VCGetElem(tid, ShadowableTid(tid), tid#epoch(r));
     if (!EpochLeq(r, vr)) {
       // read-write race
-      call ReleaseVarLock(tid, x); ok := false; call Yield20(tid); return;
+      call ReleaseVarLock(tid, x); ok := false; return;
     }
     // write exclusive
     call VarStateSetW(tid, x, e);
@@ -855,7 +777,7 @@ procedure {:yields} {:layer 20} {:refines "AtomicWrite"} Write({:linear "tid"} t
       // shared-write race
       call ReleaseVarLock(tid, x);
       ok := false;
-      call Yield20(tid); return;
+      return;
     }
     // write shared
     call VarStateSetW(tid, x, e);
@@ -863,7 +785,6 @@ procedure {:yields} {:layer 20} {:refines "AtomicWrite"} Write({:linear "tid"} t
 
   call ReleaseVarLock(tid, x);
   ok := true;
-  call Yield20(tid);
   return;
 }
 
@@ -918,18 +839,16 @@ modifies sx.R, shadow.VC;
              return;
 }
 
-procedure {:yields} {:layer 20} {:refines "AtomicRead"} Read({:linear "tid"} tid:Tid, x : Var) returns (ok : bool)
-  requires {:layer 10,20} ValidTid(tid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 10,20} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
+procedure {:yields} {:layer 20} {:refines "AtomicRead"}
+{:yield_preserves "Yield_FTRepOk_10"}
+{:yield_preserves "Yield_FTPreserved_10", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+{:yield_preserves "Yield_FTRepOk_20"}
+{:yield_requires  "Yield_Lock_20", tid, ShadowableTid(tid)}
+{:yield_preserves "Yield_FTPreserved_20", tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R)}
+Read({:linear "tid"} tid:Tid, x : Var) returns (ok : bool)
 {
   var e, w, vw, r, vr: Epoch;
   var xVC, stVC: VC;
-
-  call Yield20(tid);
 
   call e := ThreadStateGetE(tid);
 
@@ -940,8 +859,7 @@ procedure {:yields} {:layer 20} {:refines "AtomicRead"} Read({:linear "tid"} tid
        assume r != SHARED;
        if (r == e) {
          ok := true;
-         call Yield20(tid);
-         return; 
+         return;
        }
      } else {
        call r := VarStateGetRShared(tid, x);
@@ -949,21 +867,20 @@ procedure {:yields} {:layer 20} {:refines "AtomicRead"} Read({:linear "tid"} tid
        call vw := VCGetElemShared(tid, x);
        if (vw == e) {
          ok := true;
-         call Yield20(tid);
          return;
        }
-     } 
+     }
 
-  call Yield20(tid);
+  par Yield_FTRepOk_10() | Yield_FTPreserved_10(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R));
+  par Yield_FTRepOk_20() | Yield_FTPreserved_20(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R));
 
   call AcquireVarLock(tid, x);
   call w := VarStateGetW(tid, x);
   call vw := VCGetElem(tid, ShadowableTid(tid), tid#epoch(w));
   if (!EpochLeq(w, vw)) {
     // write-read race
-    call ReleaseVarLock(tid, x); 
-    ok := false; 
-    call Yield20(tid); 
+    call ReleaseVarLock(tid, x);
+    ok := false;
     return;
   }
   call r := VarStateGetR(tid, x);
@@ -973,26 +890,23 @@ procedure {:yields} {:layer 20} {:refines "AtomicRead"} Read({:linear "tid"} tid
       // Read Exclusive
       assert {:layer 10,20} tid#epoch(e) >= 0;
       call VarStateSetR(tid, x, e);
-      call ReleaseVarLock(tid, x); 
-      ok := true; 
-      call Yield20(tid); 
+      call ReleaseVarLock(tid, x);
+      ok := true;
       return;
     } else {
       call VCInit(tid, ShadowableVar(x));
       call VCSetElem(tid, ShadowableVar(x), tid#epoch(r), r);
-      call VCSetElem(tid, ShadowableVar(x), tid, e); 
-      call VarStateSetR(tid, x, SHARED); 
-      call ReleaseVarLock(tid, x); 
-      ok := true; 
-      call Yield20(tid); 
+      call VCSetElem(tid, ShadowableVar(x), tid, e);
+      call VarStateSetR(tid, x, SHARED);
+      call ReleaseVarLock(tid, x);
+      ok := true;
       return;
     }
   } else {
       // Read Shared
       call VCSetElemShared(tid, x, e);
-      call ReleaseVarLock(tid, x); 
+      call ReleaseVarLock(tid, x);
       ok := true;
-      call Yield20(tid);
       return;
   }
 }
@@ -1000,59 +914,43 @@ procedure {:yields} {:layer 20} {:refines "AtomicRead"} Read({:linear "tid"} tid
 
 /****** Layer 30 --> 40 ******/
 
+procedure {:yield_invariant} {:layer 30} Yield_Lock_30({:linear "tid"} tid: Tid, v: Shadowable);
+requires ValidTid(tid);
+requires shadow.Lock[v] == tid;
 
+procedure {:yield_invariant} {:layer 30} Yield_ThreadState_30({:linear "tid"} tid:Tid);
+  requires ValidTid(tid);
+  requires thread.State[tid] == RUNNING();
+  requires (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
 
-procedure {:yields} {:layer 30} Yield30({:linear "tid"} tid:Tid)
-  requires {:layer 10,20,30} ValidTid(tid);
-  requires {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
+procedure {:yield_invariant} {:layer 30} Yield_Preserved_30({:linear "tid"} tid:Tid, old.shadow.Lock: [Shadowable]Tid, old.thread.State: [Tid]ThreadStatus);
+  requires ValidTid(tid);
+  requires LocksPreserved(tid, old.shadow.Lock, shadow.Lock);
+  requires (forall t: Tid :: old.shadow.Lock[ShadowableTid(t)] == tid ==> thread.State[t] == old.thread.State[t]);
 
-  requires {:layer 30} thread.State[tid] == RUNNING();
-  requires {:layer 30} (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
-
-  ensures {:layer 10,20,30} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-  ensures {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-  ensures {:layer 30} thread.State[tid] == RUNNING();
-  ensures {:layer 30} (forall t: Tid :: old(shadow.Lock)[ShadowableTid(t)] == tid ==> thread.State[t] == old(thread.State)[t]);
-  ensures {:layer 30} (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
- 
-{
-    yield;
-
-    assert {:layer 10,20,30} ValidTid(tid);
-
-    assert {:layer 10,20,30} LocksPreserved(tid, old(shadow.Lock), shadow.Lock);
-    assert {:layer 10,20} FTRepOk(shadow.VC, sx.W, sx.R);
-
-    assert {:layer 10,20} FTPreserved(tid, old(shadow.Lock), old(shadow.VC), old(sx.W), old(sx.R), shadow.Lock, shadow.VC, sx.W, sx.R);
-
-    assert {:layer 30} thread.State[tid] == RUNNING();
-    assert {:layer 30} (forall t: Tid :: old(shadow.Lock)[ShadowableTid(t)] == tid ==> thread.State[t] == old(thread.State)[t]);
-    assert {:layer 30} (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
-}
-
-
-procedure {:yields} {:layer 30} Driver({:linear "tid"} tid:Tid) returns (ok: bool)
-  requires {:layer 10,20,30} ValidTid(tid);
-  requires {:layer 10,20,30} shadow.Lock[ShadowableTid(tid)] == tid;
-  requires {:layer 10,20} (forall s: Shadowable :: VCRepOk(shadow.VC[s]));
-  requires {:layer 10,20} VarsRepOk(sx.W, sx.R);
-  requires {:layer 30} thread.State[tid] == RUNNING();
-  requires {:layer 30} (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
+procedure {:yields} {:layer 30}
+{:yield_requires "Yield_Lock_10", tid, ShadowableTid(tid)}
+{:yield_requires "Yield_FTRepOk_10"}
+{:yield_requires "Yield_Lock_20", tid, ShadowableTid(tid)}
+{:yield_requires "Yield_FTRepOk_20"}
+{:yield_requires "Yield_Lock_30", tid, ShadowableTid(tid)}
+{:yield_requires "Yield_ThreadState_30", tid}
+Driver({:linear "tid"} tid:Tid) returns (ok: bool)
 {
   var x: Var;
   var l: Lock;
   var uid: Tid;
-  call Yield30(tid);
+
   ok := true;
   while (ok)
-    invariant {:layer 10,20,30} ValidTid(tid);
-    invariant {:layer 10,20,30} shadow.Lock[ShadowableTid(tid)] == tid;
-    invariant {:layer 30} thread.State[tid] == RUNNING();
-    invariant {:layer 10,20} (forall s: Shadowable :: VCRepOk(shadow.VC[s]));
-    invariant {:layer 10,20} VarsRepOk(sx.W, sx.R);
-    invariant {:layer 30} (forall t: Tid :: thread.State[t] == UNUSED() ==> shadow.Lock[ShadowableTid(t)] == nil);
+    invariant {:yields} {:layer 10,20,30}
+    {:yield_loop "Yield_Lock_10", tid, ShadowableTid(tid)}
+    {:yield_loop "Yield_FTRepOk_10"}
+    {:yield_loop "Yield_Lock_20", tid, ShadowableTid(tid)}
+    {:yield_loop "Yield_FTRepOk_20"}
+    {:yield_loop "Yield_Lock_30", tid, ShadowableTid(tid)}
+    {:yield_loop "Yield_ThreadState_30", tid}
+    true;
   {
     if (*) {
       havoc x;
@@ -1063,15 +961,14 @@ procedure {:yields} {:layer 30} Driver({:linear "tid"} tid:Tid) returns (ok: boo
     } else if (*) {
       assert {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
       call l := ChooseLockToAcquire(tid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call Acquire(tid, l);
     } else if (*) {
       call l := ChooseLockToRelease(tid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call Release(tid, l);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call ReleaseChosenLock(tid, l);
-      call Yield30(tid);
     } else if (*) {
       call uid := AllocTid(tid);
       assert {:layer 10,20} shadow.Lock[ShadowableTid(tid)] == tid;
@@ -1080,26 +977,21 @@ procedure {:yields} {:layer 30} Driver({:linear "tid"} tid:Tid) returns (ok: boo
       assert {:layer 10,20,30} tid != uid;
       assert {:layer 10,20,30} ValidTid(tid);
       assert {:layer 10,20,30} ValidTid(uid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       assert {:layer 10,20,30} ValidTid(tid);
       assert {:layer 10,20,30} ValidTid(uid);
       call Fork(tid, uid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call StartThread(tid, uid);
-      call Yield30(tid);
     } else {
-      call Yield30(tid);
       call uid := ChooseThreadToJoin(tid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call Join(tid, uid);
-      call Yield30(tid);
+      par Yield_ThreadState_30(tid) | Yield_Preserved_30(tid, shadow.Lock, thread.State);
       call ReleaseJoinLock(tid, uid);
-      call Yield30(tid);
     }
-    call Yield30(tid);
     assert {:layer 20} shadow.Lock[ShadowableTid(tid)] == tid;
   }
-  yield;
 }
 
 procedure {:yields} {:layer 0} {:refines "AtomicReleaseJoinLock"} ReleaseJoinLock({:linear "tid"} tid:Tid, uid: Tid);
@@ -1190,25 +1082,26 @@ function {:inline} {:linear "tid"} TidCollector(x: Tid) : [Tid]bool
   TidMapConstBool(false)[x := true]
 }
 
-// for matching quantifiers 
+// for matching quantifiers
 function {:inline false} f(i: int): bool {  true  }
 
 
 
 
 function
-{:witness "shadow.VC","AtomicVC.Inc","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVC.Inc","AtomicVC.Join"}
-{:witness "shadow.VC","AtomicVCSetElem","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVCSetElem","AtomicVC.Join"}
-{:witness "shadow.VC","AtomicVCSetElemShared","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVCSetElemShared","AtomicVC.Join"}
-{:witness "shadow.VC","AtomicVCInit","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVCInit","AtomicVC.Join"}
-{:witness "shadow.VC","AtomicVC.Copy","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVC.Copy","AtomicVC.Join"}
-{:witness "shadow.VC","AtomicVC.Join","AtomicVC.Copy"}
-{:witness "shadow.VC","AtomicVC.Join","AtomicVC.Join"}
+{:witness "shadow.VC"}
+{:commutativity "AtomicVC.Inc","AtomicVC.Copy"}
+{:commutativity "AtomicVC.Inc","AtomicVC.Join"}
+{:commutativity "AtomicVCSetElem","AtomicVC.Copy"}
+{:commutativity "AtomicVCSetElem","AtomicVC.Join"}
+{:commutativity "AtomicVCSetElemShared","AtomicVC.Copy"}
+{:commutativity "AtomicVCSetElemShared","AtomicVC.Join"}
+{:commutativity "AtomicVCInit","AtomicVC.Copy"}
+{:commutativity "AtomicVCInit","AtomicVC.Join"}
+{:commutativity "AtomicVC.Copy","AtomicVC.Copy"}
+{:commutativity "AtomicVC.Copy","AtomicVC.Join"}
+{:commutativity "AtomicVC.Join","AtomicVC.Copy"}
+{:commutativity "AtomicVC.Join","AtomicVC.Join"}
 witness (shadow.VC:[Shadowable]VC, shadow.VC':[Shadowable]VC, second_v1:Shadowable) : [Shadowable]VC
 {
    shadow.VC[second_v1 := shadow.VC'[second_v1]]

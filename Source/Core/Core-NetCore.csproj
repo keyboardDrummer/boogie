@@ -3,12 +3,11 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <AssemblyName>BoogieCore</AssemblyName>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
     <DefineConstants>COREFX_SUBSET</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Basetypes\Basetypes-NetCore.csproj" />
+    <ProjectReference Include="..\BaseTypes\BaseTypes-NetCore.csproj" />
     <ProjectReference Include="..\CodeContractsExtender\CodeContractsExtender-NetCore.csproj" />
     <ProjectReference Include="..\Graph\Graph-NetCore.csproj" />
     <ProjectReference Include="..\ParserHelper\ParserHelper-NetCore.csproj" />

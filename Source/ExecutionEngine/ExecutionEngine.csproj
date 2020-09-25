@@ -134,9 +134,9 @@
       <Project>{0EFA3E43-690B-48DC-A72C-384A3EA7F31F}</Project>
       <Name>AbsInt</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Basetypes\Basetypes.csproj">
+    <ProjectReference Include="..\BaseTypes\BaseTypes.csproj">
       <Project>{43DFAD18-3E35-4558-9BE2-CAFF6B5BA8A0}</Project>
-      <Name>Basetypes</Name>
+      <Name>BaseTypes</Name>
     </ProjectReference>
     <ProjectReference Include="..\CodeContractsExtender\CodeContractsExtender.csproj">
       <Project>{ACCC0156-0921-43ED-8F67-AD8BDC8CDE31}</Project>
@@ -149,10 +149,6 @@
     <ProjectReference Include="..\Core\Core.csproj">
       <Project>{B230A69C-C466-4065-B9C1-84D80E76D802}</Project>
       <Name>Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Doomed\Doomed.csproj">
-      <Project>{884386A3-58E9-40BB-A273-B24976775553}</Project>
-      <Name>Doomed</Name>
     </ProjectReference>
     <ProjectReference Include="..\Graph\Graph.csproj">
       <Project>{69A2B0B8-BCAC-4101-AE7A-556FCC58C06E}</Project>

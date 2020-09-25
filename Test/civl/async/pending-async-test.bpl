@@ -1,4 +1,4 @@
-// RUN: %boogie -noinfer -typeEncoding:m -useArrayTheory "%s" > "%t"
+// RUN: %boogie -useArrayTheory "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // XFAIL: *
 
@@ -10,9 +10,7 @@ modifies x;
 
 procedure {:yields}{:layer 2}{:refines "Client_atomic"} Client ()
 {
-  yield;
   call Service();
-  yield;
 }
 
 procedure {:atomic}{:layer 1,2} Service_atomic ()
@@ -20,9 +18,7 @@ procedure {:atomic}{:layer 1,2} Service_atomic ()
 
 procedure {:yields}{:layer 0}{:refines "Service_atomic"} Service ()
 {
-  yield;
   async call Callback();
-  yield;
 }
 
 procedure {:both}{:layer 2} Callback_atomic ()

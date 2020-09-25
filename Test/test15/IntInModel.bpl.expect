@@ -1,16 +1,19 @@
+IntInModel.bpl(4,3): Error BP5001: This assertion might not hold.
+Execution trace:
+    IntInModel.bpl(4,3): anon0
 *** MODEL
-%lbl%@1 -> false
-%lbl%+0 -> true
-%lbl%+2 -> true
 i -> 0
+ControlFlow -> {
+  0 0 -> 50
+  0 24 -> (- 51)
+  0 50 -> 24
+  else -> (- 51)
+}
 tickleBool -> {
   false -> true
   true -> true
   else -> true
 }
 *** END_MODEL
-IntInModel.bpl(4,3): Error BP5001: This assertion might not hold.
-Execution trace:
-    IntInModel.bpl(4,3): anon0
 
 Boogie program verifier finished with 0 verified, 1 error
