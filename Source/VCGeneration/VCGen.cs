@@ -842,7 +842,7 @@ namespace VC
           {
             var timeout = (keep_going && s.LastChance) ? CommandLineOptions.Clo.VcsFinalAssertTimeout :
               keep_going ? CommandLineOptions.Clo.VcsKeepGoingTimeout :
-              impl.TimeLimit;
+              impl.GetTimeLimit(TODO);
 
             var checker = s.parent.FindCheckerFor(false);
             try
@@ -868,7 +868,7 @@ namespace VC
               Contract.Assert(s.parent == this);
               lock (checker)
               {
-                s.BeginCheck(checker, callback, mvInfo, no, timeout, impl.ResourceLimit);
+                s.BeginCheck(checker, callback, mvInfo, no, timeout, impl.GetResourceLimit(TODO));
               }
 
               no++;
@@ -1014,7 +1014,7 @@ namespace VC
     {
       Contract.EnsuresOnThrow<UnexpectedProverOutputException>(true);
 
-      if (impl.SkipVerification)
+      if (impl.GetSkipVerification(TODO))
       {
         return Outcome.Inconclusive; // not sure about this one
       }
@@ -1837,7 +1837,7 @@ namespace VC
           SugaredCmd sugaredCmd = cmd as SugaredCmd;
           if (sugaredCmd != null)
           {
-            StateCmd stateCmd = sugaredCmd.Desugaring as StateCmd;
+            StateCmd stateCmd = sugaredCmd.GetDesugaring() as StateCmd;
             foreach (Variable v in stateCmd.Locals)
             {
               impl.LocVars.Add(v);

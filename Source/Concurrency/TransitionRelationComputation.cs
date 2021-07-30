@@ -89,8 +89,8 @@ namespace Microsoft.Boogie
         messagePrefix);
       trc.EnumeratePaths();
       var transitionRelation = Expr.Or(trc.pathTranslations);
-      transitionRelation.Resolve(new ResolutionContext(null) {StateMode = ResolutionContext.State.Two});
-      transitionRelation.Typecheck(new TypecheckingContext(null));
+      transitionRelation.Resolve(new ResolutionContext(CommandLineOptions.Clo, null) {StateMode = ResolutionContext.State.Two});
+      transitionRelation.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
       return transitionRelation;
     }
 

@@ -83,10 +83,27 @@ namespace Microsoft.Boogie
     }
   }
 
+  class SPrintOptions
+  {
+    public static PrintOptions Default => null; //TODO 
+  }
+  
+  public interface PrintOptions
+  {
+    bool PrintWithUniqueASTIds { get; }
+    bool PrintInstrumented { get; }
+    bool PrintInlined { get; }
+    int PrintUnstructured { get; }
+    bool PrintDesugarings { get; }
+    
+    // TODO not really a print options, required for desugaring
+    int StratifiedInlining { get; }
+  }
   public class TokenTextWriter : IDisposable
   {
-    string /*!*/
-      filename;
+    public PrintOptions CommandLineOptions { get; }
+
+    string /*!*/ filename;
 
     TextWriter /*!*/
       writer;
@@ -340,61 +357,67 @@ namespace Microsoft.Boogie
       }
     }
 
-    public TokenTextWriter(string filename)
-      : this(filename, false)
+    public TokenTextWriter(PrintOptions commandLineOptions, string filename)
+      : this(commandLineOptions, filename, false)
     {
     }
 
-    public TokenTextWriter(string filename, bool pretty)
+    public TokenTextWriter(PrintOptions commandLineOptions, string filename, bool pretty)
       : base()
     {
       Contract.Requires(filename != null);
       this.pretty = pretty;
+      this.CommandLineOptions = commandLineOptions;
       this.filename = filename;
       this.writer = new StreamWriter(filename);
     }
 
-    public TokenTextWriter(string filename, bool setTokens, bool pretty)
+    public TokenTextWriter(PrintOptions commandLineOptions, string filename, bool setTokens, bool pretty)
       : base()
     {
       Contract.Requires(filename != null);
       this.pretty = pretty;
+      this.CommandLineOptions = commandLineOptions;
       this.filename = filename;
       this.writer = new StreamWriter(filename);
       this.setTokens = setTokens;
     }
 
-    public TokenTextWriter(string filename, TextWriter writer, bool setTokens, bool pretty)
+    public TokenTextWriter(PrintOptions commandLineOptions, string filename, TextWriter writer, bool setTokens,
+      bool pretty)
       : base()
     {
       Contract.Requires(writer != null);
       Contract.Requires(filename != null);
       this.pretty = pretty;
+      this.CommandLineOptions = commandLineOptions;
       this.filename = filename;
       this.writer = writer;
       this.setTokens = setTokens;
     }
 
-    public TokenTextWriter(string filename, TextWriter writer, bool pretty)
+    public TokenTextWriter(PrintOptions commandLineOptions, string filename, TextWriter writer, bool pretty)
       : base()
     {
       Contract.Requires(writer != null);
       Contract.Requires(filename != null);
       this.pretty = pretty;
+      this.CommandLineOptions = commandLineOptions;
       this.filename = filename;
       this.writer = writer;
     }
 
-    public TokenTextWriter(TextWriter writer)
-      : this(writer, false)
+    public TokenTextWriter(PrintOptions commandLineOptions, TextWriter writer)
+      : this(commandLineOptions, writer, false)
     {
     }
 
-    public TokenTextWriter(TextWriter writer, bool pretty)
+    public TokenTextWriter(PrintOptions commandLineOptions, TextWriter writer, bool pretty)
       : base()
     {
       Contract.Requires(writer != null);
       this.pretty = pretty;
+      this.CommandLineOptions = commandLineOptions;
       this.filename = "<no file>";
       this.writer = writer;
     }
@@ -807,10 +830,10 @@ namespace Microsoft.Boogie
 
     private static readonly DateTime StartUp = DateTime.UtcNow;
 
-    public static void ExtraTraceInformation(string point)
+    public static void ExtraTraceInformation(CommandLineOptions commandLineOptions, string point)
     {
       Contract.Requires(point != null);
-      if (CommandLineOptions.Clo.TraceTimes)
+      if (commandLineOptions.TraceTimes)
       {
         DateTime now = DateTime.UtcNow;
         TimeSpan timeSinceStartUp = now - StartUp;

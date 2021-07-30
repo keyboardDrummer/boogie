@@ -154,7 +154,7 @@ namespace Microsoft.Boogie
 
     private AssertCmd GetCheck(Expr expr)
     {
-      expr.Typecheck(new TypecheckingContext(null));
+      expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
       return CmdHelper.AssertCmd(
         inputAction.proc.tok,
         expr,
@@ -212,7 +212,7 @@ namespace Microsoft.Boogie
         var paBound = civlTypeChecker.BoundVariable("pa", civlTypeChecker.pendingAsyncType);
         var pa = Expr.Ident(paBound);
         var expr = Expr.Eq(Expr.Select(PAs, pa), Expr.Literal(0));
-        expr.Typecheck(new TypecheckingContext(null));
+        expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
         return ExprHelper.ForallExpr(new List<Variable> { paBound }, expr);
       }
     }
@@ -226,7 +226,7 @@ namespace Microsoft.Boogie
         var expr = Expr.Imp(
           Expr.Gt(Expr.Select(PAs, pa), Expr.Literal(0)),
           Expr.And(elim.Keys.Select(a => Expr.Not(ExprHelper.FunctionCall(a.pendingAsyncCtor.membership, pa)))));
-        expr.Typecheck(new TypecheckingContext(null));
+        expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
         return ExprHelper.ForallExpr(new List<Variable> { paBound }, expr);
       }
     }

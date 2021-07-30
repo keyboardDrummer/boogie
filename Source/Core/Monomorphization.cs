@@ -328,10 +328,13 @@ namespace Microsoft.Boogie
       private Dictionary<TypeVariable, Type> typeParamInstantiation;
       private Dictionary<Variable, Variable> variableMapping;
       private Dictionary<Variable, Variable> boundVarSubst;
+      private CommandLineOptions commandLineOptions;
 
-      public MonomorphizationDuplicator(MonomorphizationVisitor monomorphizationVisitor)
+      public MonomorphizationDuplicator(CommandLineOptions commandLineOptions,
+        MonomorphizationVisitor monomorphizationVisitor)
       {
         this.monomorphizationVisitor = monomorphizationVisitor;
+        this.commandLineOptions = commandLineOptions;
         newInstantiatedDeclarations = new HashSet<Declaration>();
         typeParamInstantiation = new Dictionary<TypeVariable, Type>();
         variableMapping = new Dictionary<Variable, Variable>();
@@ -626,9 +629,9 @@ namespace Microsoft.Boogie
         return returnExpr;
       }
 
-      private static bool IsInlined(Implementation impl)
+      private bool IsInlined(Implementation impl)
       {
-        if (CommandLineOptions.Clo.ProcedureInlining == CommandLineOptions.Inlining.None)
+        if (commandLineOptions.ProcedureInlining == CommandLineOptions.Inlining.None)
         {
           return false;
         }
@@ -836,15 +839,15 @@ namespace Microsoft.Boogie
       }
     }
 
-    public static MonomorphizationVisitor Initialize(Program program, Dictionary<Axiom, TypeCtorDecl> axiomsToBeInstantiated,
+    public static MonomorphizationVisitor Initialize(CommandLineOptions commandLineOptions, Program program, Dictionary<Axiom, TypeCtorDecl> axiomsToBeInstantiated,
       HashSet<Axiom> polymorphicFunctionAxioms)
     {
-      var monomorphizationVisitor = new MonomorphizationVisitor(program, axiomsToBeInstantiated, polymorphicFunctionAxioms);
+      var monomorphizationVisitor = new MonomorphizationVisitor(commandLineOptions, program, axiomsToBeInstantiated, polymorphicFunctionAxioms);
       // ctorTypes contains all the uninterpreted types created for monomorphizing top-level polymorphic implementations 
       // that must be verified. The types in ctorTypes are reused across different implementations.
       var ctorTypes = new List<Type>();
       var typeCtorDecls = new HashSet<TypeCtorDecl>();
-      monomorphizationVisitor.implInstantiations.Keys.Where(impl => !impl.SkipVerification).Iter(impl =>
+      monomorphizationVisitor.implInstantiations.Keys.Where(impl => !impl.GetSkipVerification(commandLineOptions)).Iter(impl =>
       {
         for (int i = ctorTypes.Count; i < impl.TypeParameters.Count; i++)
         {
@@ -894,7 +897,7 @@ namespace Microsoft.Boogie
     private MonomorphizationDuplicator monomorphizationDuplicator;
     private Dictionary<Procedure, Implementation> procToImpl;
     
-    private MonomorphizationVisitor(Program program, Dictionary<Axiom, TypeCtorDecl> axiomsToBeInstantiated, HashSet<Axiom> polymorphicFunctionAxioms)
+    private MonomorphizationVisitor(CommandLineOptions commandLineOptions, Program program, Dictionary<Axiom, TypeCtorDecl> axiomsToBeInstantiated, HashSet<Axiom> polymorphicFunctionAxioms)
     {
       this.program = program;
       this.axiomsToBeInstantiated = axiomsToBeInstantiated;
@@ -932,7 +935,7 @@ namespace Microsoft.Boogie
       });
       this.visitedTypeCtorDecls = new HashSet<TypeCtorDecl>();
       this.visitedFunctions = new HashSet<Function>();
-      monomorphizationDuplicator = new MonomorphizationDuplicator(this);
+      monomorphizationDuplicator = new MonomorphizationDuplicator(commandLineOptions, this);
       this.procToImpl = new Dictionary<Procedure, Implementation>();
       program.TopLevelDeclarations.OfType<Implementation>().Iter(impl => this.procToImpl[impl.Proc] = impl);
       program.RemoveTopLevelDeclarations(decl => 
@@ -1073,14 +1076,14 @@ namespace Microsoft.Boogie
   
   public class Monomorphizer
   {
-    public static MonomorphizableStatus Monomorphize(Program program)
+    public static MonomorphizableStatus Monomorphize(CommandLineOptions commandLineOptions, Program program)
     {
       Dictionary<Axiom, TypeCtorDecl> axiomsToBeInstantiated;
       HashSet<Axiom> polymorphicFunctionAxioms;
       var monomorphizableStatus = MonomorphizableChecker.IsMonomorphizable(program, out axiomsToBeInstantiated, out polymorphicFunctionAxioms);
       if (monomorphizableStatus == MonomorphizableStatus.Monomorphizable)
       {
-        var monomorphizationVisitor = MonomorphizationVisitor.Initialize(program, axiomsToBeInstantiated, polymorphicFunctionAxioms);
+        var monomorphizationVisitor = MonomorphizationVisitor.Initialize(commandLineOptions, program, axiomsToBeInstantiated, polymorphicFunctionAxioms);
         program.monomorphizer = new Monomorphizer(monomorphizationVisitor);
       }
       return monomorphizableStatus;

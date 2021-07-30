@@ -822,7 +822,7 @@ namespace Microsoft.Boogie
 
           foreach (var impl in TopLevelDeclarations.OfType<Implementation>())
           {
-            if (CommandLineOptions.Clo.UserWantsToCheckRoutine(impl.Name) && !impl.SkipVerification)
+            if (CommandLineOptions.Clo.UserWantsToCheckRoutine(impl.Name) && !impl.GetSkipVerification(TODO))
             {
               Inliner.ProcessImplementation(program, impl);
             }
@@ -931,7 +931,7 @@ namespace Microsoft.Boogie
 
       var impls = program.Implementations.Where(
         impl => impl != null && CommandLineOptions.Clo.UserWantsToCheckRoutine(cce.NonNull(impl.Name)) &&
-                !impl.SkipVerification);
+                !impl.GetSkipVerification(TODO));
 
       // operate on a stable copy, in case it gets updated while we're running
       Implementation[] stablePrioritizedImpls = null;
@@ -1268,7 +1268,7 @@ namespace Microsoft.Boogie
       #region Process the verification results and statistics
 
       ProcessOutcome(verificationResult.Outcome, verificationResult.Errors, TimeIndication(verificationResult), stats,
-        output, impl.TimeLimit, er, verificationResult.ImplementationName, verificationResult.ImplementationToken,
+        output, impl.GetTimeLimit(TODO), er, verificationResult.ImplementationName, verificationResult.ImplementationToken,
         verificationResult.RequestId, verificationResult.MessageIfVerifies, wasCached);
 
       ProcessErrors(verificationResult.Errors, verificationResult.Outcome, output, er, impl);

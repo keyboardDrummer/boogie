@@ -13,21 +13,21 @@ namespace Microsoft.Boogie
 
     public static int ResolveAndTypecheck(Absy absy)
     {
-      var rc = new ResolutionContext(null);
+      var rc = new ResolutionContext(CommandLineOptions.Clo, null);
       absy.Resolve(rc);
       if (rc.ErrorCount != 0)
       {
         return rc.ErrorCount;
       }
 
-      var tc = new TypecheckingContext(null);
+      var tc = new TypecheckingContext(CommandLineOptions.Clo, null);
       absy.Typecheck(tc);
       return tc.ErrorCount;
     }
 
     public static int ResolveAndTypecheck(Absy absy, ResolutionContext.State state)
     {
-      var rc = new ResolutionContext(null);
+      var rc = new ResolutionContext(CommandLineOptions.Clo, null);
       rc.StateMode = state;
       absy.Resolve(rc);
       if (rc.ErrorCount != 0)
@@ -35,7 +35,7 @@ namespace Microsoft.Boogie
         return rc.ErrorCount;
       }
 
-      var tc = new TypecheckingContext(null);
+      var tc = new TypecheckingContext(CommandLineOptions.Clo, null);
       absy.Typecheck(tc);
       return tc.ErrorCount;
     }
@@ -58,10 +58,10 @@ namespace Microsoft.Boogie
     public static NAryExpr FunctionCall(Function f, params Expr[] args)
     {
       var expr = new NAryExpr(Token.NoToken, new FunctionCall(f), args);
-      var rc = new ResolutionContext(null);
+      var rc = new ResolutionContext(CommandLineOptions.Clo, null);
       rc.StateMode = ResolutionContext.State.Two;
       expr.Resolve(rc);
-      expr.Typecheck(new TypecheckingContext(null));
+      expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
       return expr;
     }
 

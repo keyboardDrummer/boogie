@@ -48,6 +48,7 @@ namespace Microsoft.Boogie
 
   public class ModSetCollector : ReadOnlyVisitor
   {
+    private CommandLineOptions commandLineOptions;
     private Procedure enclosingProc;
 
     private Dictionary<Procedure /*!*/, HashSet<Variable /*!*/> /*!*/> /*!*/
@@ -62,8 +63,9 @@ namespace Microsoft.Boogie
       Contract.Invariant(Contract.ForAll(modSets.Values, v => cce.NonNullElements(v)));
     }
 
-    public ModSetCollector()
+    public ModSetCollector(CommandLineOptions commandLineOptions)
     {
+      this.commandLineOptions = commandLineOptions;
       modSets = new Dictionary<Procedure /*!*/, HashSet<Variable /*!*/> /*!*/>();
       yieldingProcs = new HashSet<Procedure>();
     }
@@ -74,7 +76,7 @@ namespace Microsoft.Boogie
     {
       Contract.Requires(program != null);
 
-      if (CommandLineOptions.Clo.Trace)
+      if (commandLineOptions.Trace)
       {
 //          Console.WriteLine();
 //          Console.WriteLine("Running modset analysis ...");
@@ -539,6 +541,12 @@ namespace Microsoft.Boogie
 
   public class LiveVariableAnalysis
   {
+    readonly CommandLineOptions commandLineOptions;
+
+    public LiveVariableAnalysis(CommandLineOptions commandLineOptions) {
+      this.commandLineOptions = commandLineOptions;
+    }
+
     public static void ClearLiveVariables(Implementation impl)
     {
       Contract.Requires(impl != null);
@@ -549,13 +557,13 @@ namespace Microsoft.Boogie
       }
     }
 
-    public static void ComputeLiveVariables(Implementation impl)
+    public void ComputeLiveVariables(Implementation impl)
     {
       Contract.Requires(impl != null);
-      Microsoft.Boogie.Helpers.ExtraTraceInformation("Starting live variable analysis");
+      Microsoft.Boogie.Helpers.ExtraTraceInformation(commandLineOptions, "Starting live variable analysis");
       Graph<Block> dag = Program.GraphFromBlocks(impl.Blocks, false);
       IEnumerable<Block> sortedNodes;
-      if (CommandLineOptions.Clo.ModifyTopologicalSorting)
+      if (commandLineOptions.ModifyTopologicalSorting)
       {
         sortedNodes = dag.TopologicalSort(true);
       }
@@ -601,7 +609,7 @@ namespace Microsoft.Boogie
             if (InterProcGenKill.HasSummary(proc.Name))
             {
               liveVarsAfter =
-                InterProcGenKill.PropagateLiveVarsAcrossCall(cce.NonNull((CallCmd /*!*/) cmds[i]), liveVarsAfter);
+                InterProcGenKill.PropagateLiveVarsAcrossCall(commandLineOptions, cce.NonNull((CallCmd /*!*/) cmds[i]), liveVarsAfter);
               continue;
             }
           }
@@ -614,7 +622,7 @@ namespace Microsoft.Boogie
     }
 
     // perform in place update of liveSet
-    public static void Propagate(Cmd cmd, HashSet<Variable /*!*/> /*!*/ liveSet)
+    public void Propagate(Cmd cmd, HashSet<Variable /*!*/> /*!*/ liveSet)
     {
       Contract.Requires(cmd != null);
       Contract.Requires(cce.NonNullElements(liveSet));
@@ -702,7 +710,7 @@ namespace Microsoft.Boogie
       {
         SugaredCmd /*!*/
           sugCmd = (SugaredCmd) cce.NonNull(cmd);
-        Propagate(sugCmd.Desugaring, liveSet);
+        Propagate(sugCmd.GetDesugaring(commandLineOptions), liveSet);
       }
       else if (cmd is StateCmd)
       {
@@ -1116,6 +1124,7 @@ namespace Microsoft.Boogie
   // Interprocedural Gen/Kill Analysis
   public class InterProcGenKill
   {
+    private readonly CommandLineOptions commandLineOptions;
     Program /*!*/
       program;
 
@@ -1173,11 +1182,12 @@ namespace Microsoft.Boogie
 
 
     [NotDelayed]
-    public InterProcGenKill(Implementation impl, Program program)
+    public InterProcGenKill(CommandLineOptions commandLineOptions, Implementation impl, Program program)
     {
       Contract.Requires(program != null);
       Contract.Requires(impl != null);
       this.program = program;
+      this.commandLineOptions = commandLineOptions;
       procICFG = new Dictionary<string /*!*/, ICFG /*!*/>();
       name2Proc = new Dictionary<string /*!*/, Procedure /*!*/>();
       workList = new WorkList();
@@ -1342,7 +1352,7 @@ namespace Microsoft.Boogie
     }
 
     public static HashSet<Variable /*!*/> /*!*/
-      PropagateLiveVarsAcrossCall(CallCmd cmd, HashSet<Variable /*!*/> /*!*/ lvAfter)
+      PropagateLiveVarsAcrossCall(CommandLineOptions commandLineOptions, CallCmd cmd, HashSet<Variable /*!*/> /*!*/ lvAfter)
     {
       Contract.Requires(cmd != null);
       Contract.Requires(cce.NonNullElements(lvAfter));
@@ -1369,7 +1379,7 @@ namespace Microsoft.Boogie
       HashSet<Variable /*!*/> /*!*/
         ret = new HashSet<Variable /*!*/>();
       ret.UnionWith(lvAfter);
-      LiveVariableAnalysis.Propagate(cmd, ret);
+      new LiveVariableAnalysis(commandLineOptions).Propagate(cmd, ret);
       return ret;
     }
 
@@ -1564,12 +1574,12 @@ namespace Microsoft.Boogie
       }
     }
 
-    public static void ComputeLiveVars(Implementation impl, Program /*!*/ prog)
+    public void ComputeLiveVars(Implementation impl, Program /*!*/ prog)
     {
       Contract.Requires(prog != null);
       Contract.Requires(impl != null);
       InterProcGenKill /*!*/
-        ipgk = new InterProcGenKill(impl, prog);
+        ipgk = new InterProcGenKill(commandLineOptions, impl, prog);
       Contract.Assert(ipgk != null);
       ipgk.Compute();
     }
@@ -1733,12 +1743,12 @@ b.liveVarsBefore = procICFG[mainImpl.Name].liveVarsAfter[b];
           }
           else
           {
-            LiveVariableAnalysis.Propagate(cmd, prop);
+            new LiveVariableAnalysis(commandLineOptions).Propagate(cmd, prop);
           }
         }
         else
         {
-          LiveVariableAnalysis.Propagate(cmd, prop);
+          new LiveVariableAnalysis(commandLineOptions).Propagate(cmd, prop);
         }
       }
 
@@ -1832,7 +1842,7 @@ b.liveVarsBefore = procICFG[mainImpl.Name].liveVarsAfter[b];
     static Dictionary<Cmd /*!*/, GenKillWeight /*!*/> /*!*/
       weightCache = new Dictionary<Cmd /*!*/, GenKillWeight /*!*/>();
 
-    private static GenKillWeight getWeight(Cmd cmd)
+    private GenKillWeight getWeight(Cmd cmd)
     {
       Contract.Requires(cmd != null);
       Contract.Ensures(Contract.Result<GenKillWeight>() != null);
@@ -1855,7 +1865,7 @@ b.liveVarsBefore = procICFG[mainImpl.Name].liveVarsAfter[b];
       return GenKillWeight.extend(w1, GenKillWeight.extend(w2, w3));
     }
 
-    private static GenKillWeight getWeight(Cmd cmd, Implementation impl, Program prog)
+    private GenKillWeight getWeight(Cmd cmd, Implementation impl, Program prog)
     {
       Contract.Requires(cmd != null);
       Contract.Ensures(Contract.Result<GenKillWeight>() != null);
@@ -1986,7 +1996,7 @@ b.liveVarsBefore = procICFG[mainImpl.Name].liveVarsAfter[b];
         SugaredCmd /*!*/
           sugCmd = (SugaredCmd) cmd;
         Contract.Assert(sugCmd != null);
-        ret = getWeight(sugCmd.Desugaring, impl, prog);
+        ret = getWeight(sugCmd.GetDesugaring(commandLineOptions), impl, prog);
       }
       else if (cmd is StateCmd)
       {

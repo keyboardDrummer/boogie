@@ -18,11 +18,11 @@ namespace TestUtil
       Assert.IsNotNull(p);
 
       // Resolve
-      errors = p.Resolve();
+      errors = p.Resolve(CommandLineOptions.Clo);
       Assert.AreEqual(0, errors);
 
       // Type check
-      errors = p.Typecheck();
+      errors = p.Typecheck(CommandLineOptions.Clo);
       Assert.AreEqual(0, errors);
 
       return p;

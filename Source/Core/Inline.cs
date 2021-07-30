@@ -10,6 +10,7 @@ namespace Microsoft.Boogie
 
   public class Inliner : Duplicator
   {
+    private readonly CommandLineOptions commandLineOptions;
     protected bool inlinedSomething;
 
     protected Program program;
@@ -43,7 +44,7 @@ namespace Microsoft.Boogie
 
     public override Expr VisitCodeExpr(CodeExpr node)
     {
-      Inliner codeExprInliner = new Inliner(program, inlineCallback, CommandLineOptions.Clo.InlineDepth);
+      Inliner codeExprInliner = new Inliner(program, inlineCallback, commandLineOptions.InlineDepth, commandLineOptions);
       codeExprInliner.newLocalVars.AddRange(node.LocVars);
       codeExprInliner.inlinedProcLblMap = this.inlinedProcLblMap;
       List<Block> newCodeExprBlocks = codeExprInliner.DoInlineBlocks(node.Blocks, ref inlinedSomething);
@@ -79,12 +80,13 @@ namespace Microsoft.Boogie
       return GetInlinedProcLabel(procName) + "$" + formalName;
     }
 
-    public Inliner(Program program, InlineCallback cb, int inlineDepth)
+    public Inliner(Program program, InlineCallback cb, int inlineDepth, CommandLineOptions commandLineOptions)
     {
       this.program = program;
       this.inlinedProcLblMap = new Dictionary<string /*!*/, int>();
       this.recursiveProcUnrollMap = new Dictionary<string /*!*/, int>();
       this.inlineDepth = inlineDepth;
+      this.commandLineOptions = commandLineOptions;
       this.codeCopier = new CodeCopier();
       this.inlineCallback = cb;
       this.newLocalVars = new List<Variable>();
@@ -137,7 +139,7 @@ namespace Microsoft.Boogie
       }
     }
 
-    protected static void ProcessImplementation(Program program, Implementation impl, Inliner inliner)
+    protected void ProcessImplementation(Program program, Implementation impl, Inliner inliner)
     {
       Contract.Requires(impl != null);
       Contract.Requires(impl.Proc != null);
@@ -163,26 +165,26 @@ namespace Microsoft.Boogie
       // we need to resolve the new code
       inliner.ResolveImpl(impl);
 
-      if (CommandLineOptions.Clo.PrintInlined)
+      if (commandLineOptions.PrintInlined)
       {
         inliner.EmitImpl(impl);
       }
     }
 
-    public static void ProcessImplementationForHoudini(Program program, Implementation impl)
+    public void ProcessImplementationForHoudini(Program program, Implementation impl)
     {
       Contract.Requires(impl != null);
       Contract.Requires(program != null);
       Contract.Requires(impl.Proc != null);
-      ProcessImplementation(program, impl, new Inliner(program, null, CommandLineOptions.Clo.InlineDepth));
+      ProcessImplementation(program, impl, new Inliner(program, null, commandLineOptions.InlineDepth, commandLineOptions));
     }
 
-    public static void ProcessImplementation(Program program, Implementation impl)
+    public void ProcessImplementation(Program program, Implementation impl)
     {
       Contract.Requires(impl != null);
       Contract.Requires(program != null);
       Contract.Requires(impl.Proc != null);
-      ProcessImplementation(program, impl, new Inliner(program, null, -1));
+      ProcessImplementation(program, impl, new Inliner(program, null, -1, commandLineOptions));
     }
 
     protected void EmitImpl(Implementation impl)
@@ -190,8 +192,8 @@ namespace Microsoft.Boogie
       Contract.Requires(impl != null);
       Contract.Requires(impl.Proc != null);
       Console.WriteLine("after inlining procedure calls");
-      impl.Proc.Emit(new TokenTextWriter("<console>", Console.Out, /*pretty=*/ false), 0);
-      impl.Emit(new TokenTextWriter("<console>", Console.Out, /*pretty=*/ false), 0);
+      impl.Proc.Emit(new TokenTextWriter(commandLineOptions, "<console>", Console.Out, /*pretty=*/ false), 0);
+      impl.Emit(new TokenTextWriter(commandLineOptions, "<console>", Console.Out, /*pretty=*/ false), 0);
     }
 
     private sealed class DummyErrorSink : IErrorSink
@@ -211,7 +213,7 @@ namespace Microsoft.Boogie
     {
       Contract.Requires(impl != null);
       Contract.Ensures(impl.Proc != null);
-      ResolutionContext rc = new ResolutionContext(new DummyErrorSink());
+      ResolutionContext rc = new ResolutionContext(commandLineOptions, new DummyErrorSink());
       foreach (var decl in program.TopLevelDeclarations)
       {
         decl.Register(rc);
@@ -220,7 +222,7 @@ namespace Microsoft.Boogie
       impl.Resolve(rc);
       Debug.Assert(rc.ErrorCount == 0);
       
-      TypecheckingContext tc = new TypecheckingContext(new DummyErrorSink());
+      TypecheckingContext tc = new TypecheckingContext(commandLineOptions, new DummyErrorSink());
       impl.Typecheck(tc);
       Debug.Assert(tc.ErrorCount == 0);
     }
@@ -381,12 +383,12 @@ namespace Microsoft.Boogie
             else if (inline == 0)
             {
               inlinedSomething = true;
-              if (CommandLineOptions.Clo.ProcedureInlining == CommandLineOptions.Inlining.Assert)
+              if (commandLineOptions.ProcedureInlining == CommandLineOptions.Inlining.Assert)
               {
                 // add assert
                 newCmds.Add(new AssertCmd(callCmd.tok, Expr.False));
               }
-              else if (CommandLineOptions.Clo.ProcedureInlining == CommandLineOptions.Inlining.Assume)
+              else if (commandLineOptions.ProcedureInlining == CommandLineOptions.Inlining.Assume)
               {
                 // add assume
                 newCmds.Add(new AssumeCmd(callCmd.tok, Expr.False));

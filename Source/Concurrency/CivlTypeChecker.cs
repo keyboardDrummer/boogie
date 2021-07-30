@@ -259,7 +259,7 @@ namespace Microsoft.Boogie
         }
 
         Implementation impl = actionImpls[0];
-        impl.PruneUnreachableBlocks();
+        impl.PruneUnreachableBlocks(CommandLineOptions.Clo);
         Graph<Block> cfg = Program.GraphFromImpl(impl);
         if (!Graph<Block>.Acyclic(cfg, impl.Blocks[0]))
         {

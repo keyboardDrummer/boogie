@@ -1543,7 +1543,7 @@ namespace VC
       }
       else if (c is SugaredCmd sug)
       {
-        Cmd cmd = sug.Desugaring;
+        Cmd cmd = sug.GetDesugaring();
         Contract.Assert(cmd != null);
         TurnIntoPassiveCmd(cmd, enclosingBlock, incarnationMap, oldFrameSubst, passiveCmds, mvInfo);
       }

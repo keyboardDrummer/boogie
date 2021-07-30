@@ -2311,19 +2311,13 @@ namespace Microsoft.Boogie.SMTLib
 
   public class Factory : ProverFactory
   {
-    private readonly SMTCommandLineOptions commandLineOptions;
-
-    public Factory(SMTCommandLineOptions commandLineOptions) {
-      this.commandLineOptions = commandLineOptions;
-    }
-
-    public override object SpawnProver(ProverOptions options, object ctxt)
+    public override object SpawnProver(CommandLineOptions commandLineOptions, ProverOptions options, object ctxt)
     {
       //Contract.Requires(ctxt != null);
       //Contract.Requires(options != null);
       Contract.Ensures(Contract.Result<object>() != null);
 
-      return this.SpawnProver(options,
+      return this.SpawnProver(commandLineOptions, options,
         cce.NonNull((SMTLibProverContext) ctxt).ExprGen,
         cce.NonNull((SMTLibProverContext) ctxt));
     }
@@ -2346,12 +2340,12 @@ namespace Microsoft.Boogie.SMTLib
       return new SMTLibProverContext(gen, genOptions);
     }
 
-    public override ProverOptions BlankProverOptions()
+    public override ProverOptions BlankProverOptions(CommandLineOptions commandLineOptions)
     {
       return new SMTLibProverOptions(commandLineOptions);
     }
 
-    protected virtual SMTLibProcessTheoremProver SpawnProver(ProverOptions options,
+    protected virtual SMTLibProcessTheoremProver SpawnProver(CommandLineOptions commandLineOptions, ProverOptions options,
       VCExpressionGenerator gen,
       SMTLibProverContext ctx)
     {

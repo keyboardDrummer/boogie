@@ -352,7 +352,7 @@ namespace Microsoft.Boogie
           civlTypeChecker.procToLemmaProc.ContainsKey(node.Proc))
         return node;
 
-      node.PruneUnreachableBlocks();
+      node.PruneUnreachableBlocks(CommandLineOptions.Clo);
       node.ComputePredecessorsForBlocks();
       GraphUtil.Graph<Block> graph = Program.GraphFromImpl(node);
       graph.ComputeLoops();
@@ -846,8 +846,8 @@ namespace Microsoft.Boogie
       foreach (Variable v in scope)
       {
         Expr expr = ExprHelper.FunctionCall(domain.collectors[v.TypedIdent.Type], Expr.Ident(v));
-        expr.Resolve(new ResolutionContext(null));
-        expr.Typecheck(new TypecheckingContext(null));
+        expr.Resolve(new ResolutionContext(CommandLineOptions.Clo, null));
+        expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
         yield return expr;
       }
     }
@@ -870,8 +870,8 @@ namespace Microsoft.Boogie
         expr = ExprHelper.ExistsExpr(new List<Variable> {partition}, Expr.And(subsetExprs));
       }
 
-      expr.Resolve(new ResolutionContext(null));
-      expr.Typecheck(new TypecheckingContext(null));
+      expr.Resolve(new ResolutionContext(CommandLineOptions.Clo, null));
+      expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
       return expr;
     }
 
@@ -884,8 +884,8 @@ namespace Microsoft.Boogie
         expr = ExprHelper.FunctionCall(domain.mapOr, e, expr);
       }
 
-      expr.Resolve(new ResolutionContext(null));
-      expr.Typecheck(new TypecheckingContext(null));
+      expr.Resolve(new ResolutionContext(CommandLineOptions.Clo, null));
+      expr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
       return expr;
     }
 

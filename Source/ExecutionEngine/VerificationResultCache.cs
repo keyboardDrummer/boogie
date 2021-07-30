@@ -264,7 +264,7 @@ namespace Microsoft.Boogie
         var canUseSpecs = DependencyCollector.CanExpressOldSpecs(oldProc, Program);
         if (canUseSpecs && oldProc.SignatureEquals(node.Proc))
         {
-          var desugaring = node.Desugaring;
+          var desugaring = node.GetDesugaring();
           Contract.Assert(desugaring != null);
           var precond = node.CheckedPrecondition(oldProc, Program, e => FunctionExtractor.Extract(e, Program, axioms));
           if (precond != null)

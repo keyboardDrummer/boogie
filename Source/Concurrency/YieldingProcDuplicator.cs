@@ -178,7 +178,7 @@ namespace Microsoft.Boogie
         var pa = Expr.Ident(paBound);
         var expr = Expr.Eq(Expr.Select(Expr.Ident(CollectedPAs), pa), Expr.Literal(0));
         var forallExpr = ExprHelper.ForallExpr(new List<Variable> {paBound}, expr);
-        forallExpr.Typecheck(new TypecheckingContext(null));
+        forallExpr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
         newImpl.Blocks.First().Cmds.Insert(0, CmdHelper.AssumeCmd(forallExpr));
 
         if (!impl.LocVars.Contains(CollectedPAs))
@@ -511,7 +511,7 @@ namespace Microsoft.Boogie
         var pa = Expr.Ident(paBound);
         var expr = Expr.Eq(Expr.Select(Expr.Ident(ReturnedPAs), pa), Expr.Literal(0));
         var forallExpr = ExprHelper.ForallExpr(new List<Variable> {paBound}, expr);
-        forallExpr.Typecheck(new TypecheckingContext(null));
+        forallExpr.Typecheck(new TypecheckingContext(CommandLineOptions.Clo, null));
         newCmdSeq.Add(CmdHelper.AssertCmd(newCall.tok, forallExpr,
           "Pending asyncs created by this call are not summarized"));
       }

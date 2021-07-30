@@ -74,7 +74,7 @@ namespace Microsoft.Boogie.AbstractInterpretation
     {
       Contract.Requires(program != null);
 
-      Helpers.ExtraTraceInformation("Starting abstract interpretation");
+      Helpers.ExtraTraceInformation(CommandLineOptions.Clo, "Starting abstract interpretation");
 
       DateTime start = new DateTime(); // to please compiler's definite assignment rules
       if (CommandLineOptions.Clo.Trace)
@@ -157,7 +157,7 @@ namespace Microsoft.Boogie.AbstractInterpretation
           foreach (var impl in procedureImplementations[proc])
           {
             // add the precondition to the axioms
-            Substitution formalProcImplSubst = Substituter.SubstitutionFromDictionary(impl.GetImplFormalMap());
+            Substitution formalProcImplSubst = Substituter.SubstitutionFromDictionary(impl.GetImplFormalMap(CommandLineOptions.Clo));
             var start = initialElement;
             foreach (Requires pre in proc.Requires)
             {
@@ -364,7 +364,7 @@ namespace Microsoft.Boogie.AbstractInterpretation
       else if (cmd is SugaredCmd)
       {
         var c = (SugaredCmd) cmd;
-        elmt = Step(lattice, c.Desugaring, elmt);
+        elmt = Step(lattice, c.GetDesugaring(CommandLineOptions.Clo), elmt);
       }
       else if (cmd is CommentCmd)
       {

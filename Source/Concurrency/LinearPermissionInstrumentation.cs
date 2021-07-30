@@ -104,7 +104,7 @@ namespace Microsoft.Boogie
       }
 
       // loop headers
-      impl.PruneUnreachableBlocks();
+      impl.PruneUnreachableBlocks(CommandLineOptions.Clo);
       impl.ComputePredecessorsForBlocks();
       var graph = Program.GraphFromImpl(impl);
       graph.ComputeLoops();

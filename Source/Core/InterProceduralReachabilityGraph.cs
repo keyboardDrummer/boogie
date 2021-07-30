@@ -26,12 +26,14 @@ namespace Microsoft.Boogie
     private Dictionary<Block, Block> originalToNew;
     private Dictionary<string, Block> newProcedureEntryNodes;
     private Dictionary<string, Block> newProcedureExitNodes;
+    private readonly CommandLineOptions commandLineOptions;
 
     private Graph<Block> reachabilityGraph;
 
-    public InterproceduralReachabilityGraph(Program prog)
+    public InterproceduralReachabilityGraph(CommandLineOptions commandLineOptions, Program prog)
     {
       this.prog = prog;
+      this.commandLineOptions = commandLineOptions;
       originalToNew = new Dictionary<Block, Block>();
       newProcedureEntryNodes = new Dictionary<string, Block>();
       newProcedureExitNodes = new Dictionary<string, Block>();
@@ -257,7 +259,7 @@ namespace Microsoft.Boogie
     {
       if (ReachabilityGraphSCCsDAG == null)
       {
-        if (CommandLineOptions.Clo.Trace)
+        if (commandLineOptions.Trace)
         {
           Console.WriteLine("Interprocedural reachability: computing SCCs");
         }
@@ -292,7 +294,7 @@ namespace Microsoft.Boogie
           ReachabilityGraphSCCsDAG.AddEdge(BlockToSCC[n], dummy);
         }
 
-        if (CommandLineOptions.Clo.Trace)
+        if (commandLineOptions.Trace)
         {
           Console.WriteLine("Interprocedural reachability: SCCs computed!");
         }

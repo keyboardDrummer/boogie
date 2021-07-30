@@ -9,6 +9,7 @@ namespace Microsoft.Boogie
 {
   public class ProverOptions
   {
+    private CommandLineOptions commandLineOptions;
     public string /*?*/
       LogFilename = null;
 
@@ -30,6 +31,10 @@ namespace Microsoft.Boogie
 
     private string /*!*/
       stringRepr = "";
+
+    public ProverOptions(CommandLineOptions commandLineOptions) {
+      this.commandLineOptions = commandLineOptions;
+    }
 
     [ContractInvariantMethod]
     void ObjectInvariant()
@@ -170,7 +175,7 @@ The generic options may or may not be used by the prover plugin.
       Contract.Requires(proverPath != null);
       Contract.Ensures(confirmedProverPath != null);
       confirmedProverPath = proverPath;
-      if (CommandLineOptions.Clo.Trace)
+      if (commandLineOptions.Trace)
       {
         Console.WriteLine("[TRACE] Using prover: " + confirmedProverPath);
       }
@@ -296,15 +301,15 @@ The generic options may or may not be used by the prover plugin.
   {
     // Really returns ProverInterface.
     //public abstract object! SpawnProver(ProverOptions! options, object! ctxt);
-    public abstract object SpawnProver(ProverOptions options, object ctxt);
+    public abstract object SpawnProver(CommandLineOptions commandLineOptions, ProverOptions options, object ctxt);
 
     // Really returns ProverContext
     public abstract object /*!*/ NewProverContext(ProverOptions /*!*/ options);
 
-    public virtual ProverOptions BlankProverOptions()
+    public virtual ProverOptions BlankProverOptions(CommandLineOptions commandLineOptions)
     {
       Contract.Ensures(Contract.Result<ProverOptions>() != null);
-      return new ProverOptions();
+      return new ProverOptions(commandLineOptions);
     }
 
     // return true if the prover supports DAG AST as opposed to LET AST

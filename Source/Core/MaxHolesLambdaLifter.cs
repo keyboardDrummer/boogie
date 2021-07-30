@@ -41,21 +41,21 @@ namespace Core
     private int _freshVarCount;
 
     private readonly Dictionary<Absy, LambdaLiftingTemplate> _templates = new Dictionary<Absy, LambdaLiftingTemplate>();
+    private readonly CommandLineOptions commandLineOptions;
 
-    public MaxHolesLambdaLifter(
-      LambdaExpr lambda,
+    public MaxHolesLambdaLifter(CommandLineOptions commandLineOptions, LambdaExpr lambda,
       Dictionary<Expr, FunctionCall> liftedLambdas,
       string freshFnName,
       List<Function> lambdaFunctions,
       List<Axiom> lambdaAxioms,
-      int freshVarCount = 0
-    )
+      int freshVarCount = 0)
     {
       _lambda = lambda;
       _liftedLambdas = liftedLambdas;
       _freshFnName = freshFnName;
       _lambdaFunctions = lambdaFunctions;
       _lambdaAxioms = lambdaAxioms;
+      this.commandLineOptions = commandLineOptions;
       _freshVarCount = freshVarCount;
     }
 
@@ -311,7 +311,7 @@ namespace Core
 
 
       var lambdaAttrs = _lambda.Attributes;
-      if (0 < CommandLineOptions.Clo.VerifySnapshots && QKeyValue.FindStringAttribute(lambdaAttrs, "checksum") == null)
+      if (0 < commandLineOptions.VerifySnapshots && QKeyValue.FindStringAttribute(lambdaAttrs, "checksum") == null)
       {
         // Attach a dummy checksum to avoid issues in the dependency analysis.
         var checksumAttr = new QKeyValue(_lambda.tok, "checksum", new List<object> {"lambda expression"}, null);
@@ -332,7 +332,7 @@ namespace Core
       var freeVarActuals = freeVars.OfType<Type>().ToList();
 
       var sw = new StringWriter();
-      var wr = new TokenTextWriter(sw, true);
+      var wr = new TokenTextWriter(commandLineOptions, sw, true);
       _lambda.Emit(wr);
       string lam_str = sw.ToString();
 
@@ -347,14 +347,14 @@ namespace Core
 
       if (_liftedLambdas.TryGetValue(liftedLambda, out fcall))
       {
-        if (CommandLineOptions.Clo.TraceVerify)
+        if (commandLineOptions.TraceVerify)
         {
           Console.WriteLine("Old lambda: {0}", lam_str);
         }
       }
       else
       {
-        if (CommandLineOptions.Clo.TraceVerify)
+        if (commandLineOptions.TraceVerify)
         {
           Console.WriteLine("New lambda: {0}", lam_str);
         }
