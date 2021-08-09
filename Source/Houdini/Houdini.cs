@@ -436,8 +436,7 @@ namespace Microsoft.Boogie.Houdini
       }
       */
 
-      var checkerPool = CheckerPool.FromOptions();
-      this.vcgen = new VCGen(program, checkerPool);
+      this.vcgen = new VCGen(program, CheckerPool.FromOptions());
       this.proverInterface = ProverInterface.CreateProver(program, CommandLineOptions.Clo.ProverLogFilePath,
         CommandLineOptions.Clo.ProverLogFileAppend, CommandLineOptions.Clo.TimeLimit, taskID: GetTaskID());
 
