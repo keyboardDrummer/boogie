@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Microsoft.Boogie
 {
@@ -882,6 +883,34 @@ namespace Microsoft.Boogie
       int hCode = 0;
       l.Iter(x => { hCode = hCode ^ x.GetHashCode(); });
       return hCode.GetHashCode();
+    }
+  }
+  
+  public static class SafeThreads {
+    public static void DeadlockSafeWaitAll(Task[] tasks)
+    {
+      // Because we do not pass a timeout or a cancellation token,
+      // this will run awaited tasks synchronously on the current thread if they're not already running on other threads,
+      // so no deadlock can occur due to a lack of concurrency in the TaskSchedulers.
+      Task.WaitAll(tasks);
+    }
+    
+    public static void DeadlockSafeWait(Task task)
+    {
+      // Because we do not pass a timeout or a cancellation token,
+      // this will run the awaited task synchronously on the current thread if it's not already running on other threads,
+      // so no deadlock can occur due to a lack of concurrency in the TaskSchedulers.
+      task.Wait();
+    }
+    
+    public static int DeadlockSafeWaitAny(Task[] tasks)
+    {
+      var nonBlockingStates = new[] {TaskStatus.Running, TaskStatus.Faulted, TaskStatus.RanToCompletion}.ToHashSet();
+      var oneIsRunning = tasks.Any(t => nonBlockingStates.Contains(t.Status));
+      if (!oneIsRunning && tasks.Length > 0) {
+        tasks[0].RunSynchronously();
+      }
+      return Task.WaitAny(tasks);
     }
   }
 }

@@ -348,7 +348,7 @@ namespace VC
               CommandLineOptions.Clo.SmokeTimeout, CommandLineOptions.Clo.ResourceLimit, null);
           }
 
-          ch.ProverTask.Wait();
+          SafeThreads.DeadlockSafeWait(ch.ProverTask);
 
           lock (ch)
           {
@@ -883,7 +883,7 @@ namespace VC
           {
             try
             {
-              int index = Task.WaitAny(tasks);
+              int index = SafeThreads.DeadlockSafeWaitAny(tasks);
               s = currently_running[index];
               currently_running.RemoveAt(index);
 

@@ -170,12 +170,12 @@ namespace Microsoft.Boogie.Houdini
       {
         t.parallelTask.Start();
       }
-
-      Task.WaitAll(tasks.Select(Item => Item.parallelTask).ToArray());
+ 
+      SafeThreads.DeadlockSafeWaitAll(tasks.Select(Item => Item.parallelTask).ToArray());
       int count = 0;
       foreach (var h in houdiniInstances)
       {
-        if (h.Count() > 0)
+        if (h.Any())
         {
           count++;
           System.Diagnostics.Debug.Assert(h.Count() == 1);
@@ -217,7 +217,7 @@ namespace Microsoft.Boogie.Houdini
 
     private void ExecuteStage(ScheduledStage s)
     {
-      Task.WaitAll(tasks.Where(
+      SafeThreads.DeadlockSafeWaitAll(tasks.Where(
         Item => plan.GetDependences(s).Contains(Item.stage)).Select(Item => Item.parallelTask).ToArray());
 
       if (s.Count() == 0)

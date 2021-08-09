@@ -430,8 +430,6 @@ namespace Microsoft.Boogie
     static readonly ConcurrentDictionary<string, CancellationTokenSource> RequestIdToCancellationTokenSource =
       new ConcurrentDictionary<string, CancellationTokenSource>();
 
-    static ThreadTaskScheduler Scheduler = new ThreadTaskScheduler(16 * 1024 * 1024);
-
     static TextWriter ModelWriter = null;
 
     public static bool ProcessFiles(IList<string> fileNames, bool lookForSnapshots = true, string programId = null)
@@ -961,69 +959,31 @@ namespace Microsoft.Boogie
       {
         var cts = new CancellationTokenSource();
         RequestIdToCancellationTokenSource.AddOrUpdate(requestId, cts, (k, ov) => cts);
-
-        var tasks = new Task[stablePrioritizedImpls.Length];
-        // We use this semaphore to limit the number of tasks that are currently executing.
-        var semaphore = new SemaphoreSlim(CommandLineOptions.Clo.VcsCores);
-
-        // Create a task per implementation.
-        for (int i = 0; i < stablePrioritizedImpls.Length; i++)
+        
+        SafeThreads.DeadlockSafeWaitAll(stablePrioritizedImpls.Select((impl, taskIndex) =>
         {
-          var taskIndex = i;
-          var id = stablePrioritizedImpls[taskIndex].Id;
-
-          if (ImplIdToCancellationTokenSource.TryGetValue(id, out var old))
+          if (ImplIdToCancellationTokenSource.TryGetValue(impl.Id, out var old))
           {
             old.Cancel();
           }
 
-          ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
+          ImplIdToCancellationTokenSource.AddOrUpdate(impl.Id, cts, (k, ov) => cts);
 
-          var t = new Task((dummy) =>
+          return Task.Run(() =>
           {
-            try
-            {
-              if (outcome == PipelineOutcome.FatalError)
-              {
-                return;
-              }
-
-              if (cts.Token.IsCancellationRequested)
-              {
-                cts.Token.ThrowIfCancellationRequested();
-              }
-
-              VerifyImplementation(program, stats, er, requestId, extractLoopMappingInfo, stablePrioritizedImpls,
-                taskIndex, outputCollector, Checkers, programId);
-              ImplIdToCancellationTokenSource.TryRemove(id, out old);
+            if (outcome == PipelineOutcome.FatalError) {
+              return;
             }
-            finally
-            {
-              semaphore.Release();
+
+            if (cts.Token.IsCancellationRequested) {
+              cts.Token.ThrowIfCancellationRequested();
             }
-          }, cts.Token, TaskCreationOptions.None);
-          tasks[taskIndex] = t;
-        }
 
-        // Execute the tasks.
-        int j = 0;
-        for (; j < stablePrioritizedImpls.Length && outcome != PipelineOutcome.FatalError; j++)
-        {
-          try
-          {
-            semaphore.Wait(cts.Token);
-          }
-          catch (OperationCanceledException)
-          {
-            break;
-          }
-
-          tasks[j].Start(Scheduler);
-        }
-
-        // Don't wait for tasks that haven't been started yet.
-        tasks = tasks.Take(j).ToArray();
-        Task.WaitAll(tasks);
+            VerifyImplementation(program, stats, er, requestId, extractLoopMappingInfo, stablePrioritizedImpls,
+              taskIndex, outputCollector, checkerPool, programId);
+            ImplIdToCancellationTokenSource.TryRemove(impl.Id, out old);
+          }, cts.Token);
+        }).ToArray());
       }
       catch (AggregateException ae)
       {
