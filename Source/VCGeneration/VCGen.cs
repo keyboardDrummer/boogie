@@ -20,12 +20,10 @@ namespace VC
     /// Constructor.  Initializes the theorem prover.
     /// </summary>
     [NotDelayed]
-    public VCGen(Program program, string /*?*/ logFilePath, bool appendLogFile, List<Checker> checkers)
-      : base(program, checkers)
+    public VCGen(Program program, CheckerPool checkerPool)
+      : base(program, checkerPool)
     {
       Contract.Requires(program != null);
-      this.appendLogFile = appendLogFile;
-      this.logFilePath = logFilePath;
     }
 
     public static AssumeCmd AssertTurnedIntoAssume(AssertCmd assrt)
@@ -318,7 +316,7 @@ namespace VC
 
         parent.CurrentLocalVariables = impl.LocVars;
         parent.PassifyImpl(impl, out var mvInfo);
-        Checker ch = parent.FindCheckerFor();
+        Checker ch = parent.CheckerPool.FindCheckerFor(parent);
         Contract.Assert(ch != null);
 
         ProverInterface.Outcome outcome = ProverInterface.Outcome.Undetermined;
@@ -540,7 +538,7 @@ namespace VC
 
       public VCExpr CodeExprToVerificationCondition(CodeExpr codeExpr, List<VCExprLetBinding> bindings, bool isPositiveContext)
       {
-        VCGen vcgen = new VCGen(new Program(), null, false, new List<Checker>());
+        VCGen vcgen = new VCGen(new Program(), CheckerPool.FromOptions());
         vcgen.variable2SequenceNumber = new Dictionary<Variable, int>();
         vcgen.incarnationOriginMap = new Dictionary<Incarnation, Absy>();
         vcgen.CurrentLocalVariables = codeExpr.LocVars;
@@ -776,7 +774,6 @@ namespace VC
 
     void SplitAndVerify(Implementation impl, Dictionary<TransferCmd, ReturnCmd> gotoCmdOrigins,  VerifierCallback callback, ModelViewInfo mvInfo, ref Outcome outcome)
     {
-      Cores = CommandLineOptions.Clo.VcsCores;
       double max_vc_cost = CommandLineOptions.Clo.VcsMaxCost;
       int tmp_max_vc_cost = -1,
         max_splits = CommandLineOptions.Clo.VcsMaxSplits,
@@ -837,7 +834,7 @@ namespace VC
               keep_going ? CommandLineOptions.Clo.VcsKeepGoingTimeout :
               impl.TimeLimit;
 
-            var checker = s.parent.FindCheckerFor(false);
+            var checker = s.parent.CheckerPool.FindCheckerFor(s.parent, false);
             try
             {
               if (checker == null)
