@@ -94,7 +94,7 @@ namespace VC
     public Dictionary<Incarnation, Absy> incarnationOriginMap = new Dictionary<Incarnation, Absy>();
 
     public Dictionary<Cmd, List<object>> debugInfos = new Dictionary<Cmd, List<object>>();
-    
+
     public Program program;
     public CheckerPool CheckerPool { get; }
 
@@ -139,7 +139,7 @@ namespace VC
       Helpers.ExtraTraceInformation("Finished implementation verification");
       return outcome;
     }
-    
+
     public abstract Outcome VerifyImplementation(Implementation impl, VerifierCallback callback);
 
     /////////////////////////////////// Common Methods and Classes //////////////////////////////////////////
@@ -502,9 +502,6 @@ namespace VC
     }
 
     #endregion
-
-
-
 
     public virtual void Close()
     {
@@ -1028,7 +1025,7 @@ namespace VC
         Interlocked.Increment(ref CachingActionCounts[(int) action]);
       }
     }
-    
+
     private void AddDebugInfo(Cmd c, Dictionary<Variable, Expr> incarnationMap, List<Cmd> passiveCmds)
     {
       if (c is ICarriesAttributes cmd)

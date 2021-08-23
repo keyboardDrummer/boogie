@@ -28,7 +28,8 @@ namespace VC
       this.appendLogFile = appendLogFile;
     }
 
-    public Checker FindCheckerFor(ConditionGeneration vcgen, bool isBlocking = true, int waitTimeinMs = 50, int maxRetries = 3)
+    public Checker FindCheckerFor(ConditionGeneration vcgen, Implementation impl, bool isBlocking = true,
+      int waitTimeinMs = 50, int maxRetries = 3)
     {
       Contract.Requires(0 <= waitTimeinMs && 0 <= maxRetries);
       Contract.Ensures(!isBlocking || Contract.Result<Checker>() != null);
@@ -46,7 +47,7 @@ namespace VC
           {
             try
             {
-              if (c.WillingToHandle(program))
+              if (c.WillingToHandle(program) && !CommandLineOptions.Clo.PruneFunctionsAndAxioms)
               {
                 c.GetReady();
                 return c;
@@ -55,7 +56,7 @@ namespace VC
               {
                 if (c.IsIdle)
                 {
-                  c.Retarget(program, c.TheoremProver.Context);
+                  c.Retarget(program, c.TheoremProver.Context, impl);
                   c.GetReady();
                   return c;
                 }
@@ -89,18 +90,18 @@ namespace VC
         }
 
         // Create a new checker.
-        return CreateNewChecker(vcgen);
+        return CreateNewChecker(vcgen, impl);
       }
     }
 
-    private Checker CreateNewChecker(ConditionGeneration vcgen)
+    private Checker CreateNewChecker(ConditionGeneration vcgen, Implementation impl)
     {
       var log = logFilePath;
       if (log != null && !log.Contains("@PROC@") && checkers.Count > 0) {
         log = log + "." + checkers.Count;
       }
 
-      Checker ch = new Checker(vcgen, vcgen.program, logFilePath, appendLogFile);
+      Checker ch = new Checker(vcgen, vcgen.program, logFilePath, appendLogFile, impl);
       ch.GetReady();
       checkers.Add(ch);
       return ch;
