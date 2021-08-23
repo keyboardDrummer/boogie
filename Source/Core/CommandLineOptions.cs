@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using Core;
 
 namespace Microsoft.Boogie
 {
@@ -491,6 +493,8 @@ namespace Microsoft.Boogie
   /// </summary>
   public class CommandLineOptions : CommandLineOptionEngine
   {
+    private const int maxStackSize = 16 * 1024 * 1024;
+
     public CommandLineOptions()
       : base("Boogie", "Boogie program verifier")
     {
@@ -529,6 +533,7 @@ namespace Microsoft.Boogie
                          3); // 0 = print only structured,  1 = both structured and unstructured,  2 = only unstructured
     }
 
+    public TaskScheduler TaskScheduler = new CustomStackSizeTaskScheduler(maxStackSize, 1);
     public int VerifySnapshots = -1;
     public bool VerifySeparately = false;
     public string PrintFile = null;
@@ -1440,6 +1445,7 @@ namespace Microsoft.Boogie
 
         case "vcsCores":
           ps.GetNumericArgument(ref VcsCores, a => 1 <= a);
+          TaskScheduler = new CustomStackSizeTaskScheduler(maxStackSize, VcsCores);
           return true;
 
         case "vcsLoad":
@@ -1454,6 +1460,7 @@ namespace Microsoft.Boogie
 
             int p = (int) Math.Round(System.Environment.ProcessorCount * load);
             VcsCores = p < 1 ? 1 : p;
+            TaskScheduler = new CustomStackSizeTaskScheduler(maxStackSize, VcsCores);
           }
 
           return true;

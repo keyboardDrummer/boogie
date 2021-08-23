@@ -970,7 +970,7 @@ namespace Microsoft.Boogie
 
           ImplIdToCancellationTokenSource.AddOrUpdate(impl.Id, cts, (k, ov) => cts);
 
-          return Task.Run(() =>
+          return Task.Factory.StartNew(() =>
           {
             if (outcome == PipelineOutcome.FatalError) {
               return;
@@ -983,7 +983,7 @@ namespace Microsoft.Boogie
             VerifyImplementation(program, stats, er, requestId, extractLoopMappingInfo, stablePrioritizedImpls,
               taskIndex, outputCollector, checkerPool, programId);
             ImplIdToCancellationTokenSource.TryRemove(impl.Id, out old);
-          }, cts.Token);
+          }, cts.Token, TaskCreationOptions.None, CommandLineOptions.Clo.TaskScheduler);
         }).ToArray());
       }
       catch (AggregateException ae)
