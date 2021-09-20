@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Boogie
 {
-  internal class BlocksVisitor : DependencyEvaluator
+  internal class BlocksVisitor : DeclarationDependencies
   {
     public List<Block> Blocks;
     public HashSet<Variable> RelVars;
@@ -21,9 +21,9 @@ namespace Microsoft.Boogie
     public override Expr VisitExpr(Expr node)
     {
       if (node is IdentifierExpr iExpr && iExpr.Decl is Constant c) {
-        outgoing.Add(c);
+        AddOutgoing(c);
       } else if (node is NAryExpr e && e.Fun is FunctionCall f) {
-        outgoing.Add(f.Func);
+        AddOutgoing(f.Func);
       }
       return base.VisitExpr(node);
     }

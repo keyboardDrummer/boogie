@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace Microsoft.Boogie
 {
-  public class DependencyEvaluator : ReadOnlyVisitor
+  public class DeclarationDependencies : ReadOnlyVisitor
   {
     // For each declaration, we compute incoming and outgoing dependents.
     // Incoming dependents are functions or constants that the declaration may help the solver with.
@@ -20,25 +20,43 @@ namespace Microsoft.Boogie
     // Now, a declaration A depends on B, if the outgoing dependents of A match
     // with some incoming dependent of B (see method depends).
 
-    public readonly Declaration node; // a node could either be a function or an axiom.
-    public HashSet<Declaration> outgoing; // an edge can either be a function or a constant.
-    public HashSet<Declaration> incoming;
-    public List<HashSet<Declaration>> incomingTuples;
-    public HashSet<Type> types;
+    public readonly Declaration declaration; // a node could either be a function or an axiom.
+    protected HashSet<Declaration> Outgoings { get; }
+    protected SetOfSets<Declaration> incomings;
+    protected HashSet<Type> types;
 
-    public DependencyEvaluator(Declaration d)
+    private static bool ExcludeDep(Declaration d)
     {
-      node = d;
-      incoming = new HashSet<Declaration>();
-      incomingTuples = new List<HashSet<Declaration>>();
-      outgoing = new HashSet<Declaration>();
+      return d.Attributes != null && QKeyValue.FindBoolAttribute(d.Attributes, "exclude_dep");
+    }
+
+    protected void AddIncoming(Declaration incoming)
+    {
+      if (declaration == incoming || !ExcludeDep(incoming))
+        incomings.Add(incoming);
+    }
+
+    protected void AddOutgoing(Declaration outgoing)
+    {
+      if (!ExcludeDep(outgoing)) {
+        Outgoings.Add(outgoing);
+      }
+    }
+    
+    public DeclarationDependencies(Declaration declaration)
+    {
+      this.declaration = declaration;
+      incomings = new ();
+      Outgoings = new HashSet<Declaration>();
       types = new HashSet<Type>();
     }
-    // returns true if there is an edge from a to b
-    public static bool Depends(DependencyEvaluator a, DependencyEvaluator b)
+    
+    /*
+     * returns true if there is an edge from a to b
+     */
+    public static bool Depends(DeclarationDependencies from, DeclarationDependencies to)
     {
-      return b.incoming.Intersect(a.outgoing).Any() ||
-             b.incomingTuples.Any(s => s.IsSubsetOf(a.outgoing));
+      return to.incomings.ContainsSubSetOf(from.Outgoings);
     }
   }
 }

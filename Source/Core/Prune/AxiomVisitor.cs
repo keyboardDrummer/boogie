@@ -5,31 +5,35 @@ using System.Linq;
 
 namespace Microsoft.Boogie
 {
-  internal class AxiomVisitor : DependencyEvaluator
+  internal class AxiomVisitor : DeclarationDependencies
   {
     public AxiomVisitor (Axiom a) : base(a) {}
 
-    private void VisitTriggerCustom(Trigger t) {
-      var incomingOld = new HashSet<Declaration>(incoming);
-      incoming = new HashSet<Declaration>();
-      var triggerList = t.Tr.ToList();
+    private void VisitTriggerCustom(Trigger t)
+    {
+      var axiomVisitor = new AxiomVisitor((Axiom)declaration);
+      var triggerList = t.Tr.ToList(); // TODO remove ToList, rename Tr.
       triggerList.ForEach(e => e.pos = Expr.Position.Neither);
-      triggerList.ForEach(e => VisitExpr(e));
-      if (incoming.Count() > 1) {
-        incomingTuples.Add(new HashSet<Declaration>(incoming));
-        incoming = incomingOld;
-      } else {
-        incoming.UnionWith(incomingOld);
-      }
+      triggerList.ForEach(e => axiomVisitor.VisitExpr(e));
+      incomings.Add(axiomVisitor.Outgoings);
     }
 
+    private void SaveIncoming(Action action)
+    {
+      var old = incomings;
+      incomings = new SetOfSets<Declaration>();
+      action();
+      incomings = old;
+    }
+    
+    // TODO: Why do we need these switches instead of using the visitor?
     public override Expr VisitExpr(Expr node) {
-      if (node is IdentifierExpr iExpr && iExpr.Decl is Constant c) {
-        incoming.Add(c);
-        outgoing.Add(c);
+      if (node is IdentifierExpr { Decl: Constant c }) {
+        AddIncoming(c);
+        AddOutgoing(c);
       } else if (node is NAryExpr e && e.Fun is FunctionCall f) {
-        incoming.Add(f.Func);
-        outgoing.Add(f.Func);
+        AddIncoming(f.Func);
+        AddOutgoing(f.Func);
       } else if (node is NAryExpr n) {
         var appliable = n.Fun;
         if (appliable is UnaryOperator op) {
@@ -48,19 +52,8 @@ namespace Microsoft.Boogie
         } else {
           n.Args.ToList().ForEach(a => a.pos = Expr.Position.Neither);
         }
-      } else if (node is BinderExpr be && be is QuantifierExpr qe) {
-        Trigger start = qe.Triggers;
-        while(start != null) {
-          VisitTriggerCustom(start);
-          start = start.Next;
-        }
-        var discardBodyIncoming = (qe is ForallExpr fa && fa.pos == Expr.Position.Pos && qe.Triggers != null)
-                                  || qe is ExistsExpr ee && ee.pos == Expr.Position.Neg;
-        be.Body.pos = Expr.Position.Neither;
-        var incomingOld = new HashSet<Declaration>(incoming);
-        VisitExpr(be.Body); // this will still edit the outgoing edges and types
-        incoming = discardBodyIncoming ? incomingOld : incoming;
-        return null;
+      } else if (node is QuantifierExpr quantifierExpr) {
+        return VisitQuantifierExprCustom(quantifierExpr);
       } else if (node is OldExpr o) {
         o.Expr.pos = Expr.Position.Neither;
       } else if (node is CodeExpr) {
@@ -84,6 +77,30 @@ namespace Microsoft.Boogie
         }
       }
       return base.VisitExpr(node);
+    }
+
+    private Expr VisitQuantifierExprCustom(QuantifierExpr quantifierExpr)
+    {
+      Trigger start = quantifierExpr.Triggers;
+      while (start != null) {
+        VisitTriggerCustom(start);
+        start = start.Next;
+      }
+
+      var discardBodyIncoming = quantifierExpr is ForallExpr { pos: Expr.Position.Pos } && quantifierExpr.Triggers != null
+                                || quantifierExpr is ExistsExpr { pos: Expr.Position.Neg };
+      quantifierExpr.Body.pos = Expr.Position.Neither;
+
+      if (discardBodyIncoming) {
+        var old = incomings;
+        incomings = new SetOfSets<Declaration>();
+        VisitExpr(quantifierExpr.Body);
+        incomings = old;
+      } else {
+        VisitExpr(quantifierExpr.Body);
+      }
+
+      return null;
     }
 
     public override Boogie.Type VisitType(Boogie.Type node)

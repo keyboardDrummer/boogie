@@ -8,7 +8,6 @@ using System.Diagnostics.Contracts;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie.GraphUtil;
 using Set = Microsoft.Boogie.GSet<object>;
-using DependencyEvaluator = Microsoft.Boogie.DependencyEvaluator;
 
 namespace Microsoft.Boogie
 {
@@ -278,7 +277,7 @@ namespace Microsoft.Boogie
       Contract.Invariant(cce.NonNullElements(this.globalVariablesCache, true));
     }
 
-    public Dictionary<DependencyEvaluator, List<DependencyEvaluator>> edges;
+    public Dictionary<DeclarationDependencies, List<DeclarationDependencies>> edges;
 
     public Program()
       : base(Token.NoToken)

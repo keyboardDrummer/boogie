@@ -4,29 +4,22 @@ using System.Collections.Generic;
 namespace Microsoft.Boogie
 {
   public class Prune {
-    private static bool ExcludeDep(Declaration d)
-    {
-      return d.Attributes != null &&
-              QKeyValue.FindBoolAttribute(d.Attributes, "exclude_dep");
-    }
 
-    public static Dictionary<DependencyEvaluator, List<DependencyEvaluator>> InitializeEdges(Program program)
+    public static Dictionary<DeclarationDependencies, List<DeclarationDependencies>> InitializeEdges(Program program)
     {
       if (!CommandLineOptions.Clo.PruneFunctionsAndAxioms)
       {
         return null;
       }
-      var nodes = program.Axioms.Select(ax => (DependencyEvaluator)new AxiomVisitor(ax)).ToList();
-      nodes.ForEach(axv => ((AxiomVisitor)axv).Visit(axv.node));
-      var functionNodes = program.Functions.Select(f => (DependencyEvaluator)new FunctionVisitor(f)).ToList();
-      functionNodes.ForEach(fv => ((FunctionVisitor)fv).Visit(fv.node));
+      var nodes = program.Axioms.Select(ax => (DeclarationDependencies)new AxiomVisitor(ax)).ToList();
+      nodes.ForEach(axv => ((AxiomVisitor)axv).Visit(axv.declaration));
+      var functionNodes = program.Functions.Select(f => (DeclarationDependencies)new FunctionVisitor(f)).ToList();
+      functionNodes.ForEach(fv => ((FunctionVisitor)fv).Visit(fv.declaration));
       nodes.AddRange(functionNodes);
-      nodes.ForEach(u => u.incoming = u.incoming.Where(i => u.node == i || !ExcludeDep(i)).ToHashSet());
-      nodes.ForEach(u => u.outgoing = u.outgoing.Where(i => !ExcludeDep(i)).ToHashSet());
-      var edges = new Dictionary<DependencyEvaluator, List<DependencyEvaluator>>();
+      var edges = new Dictionary<DeclarationDependencies, List<DeclarationDependencies>>();
       
       // TODO remove square complexity.
-      nodes.ForEach(u => edges[u] = nodes.Where(v => DependencyEvaluator.Depends(u, v)).ToList());
+      nodes.ForEach(u => edges[u] = nodes.Where(v => DeclarationDependencies.Depends(u, v)).ToList());
       return edges;
     }
 
@@ -90,18 +83,18 @@ namespace Microsoft.Boogie
       BlocksVisitor bnode = new BlocksVisitor(blocks);
       bnode.Blocks.ForEach(blk => bnode.Visit(blk));
       TrimWhereAssumes(blocks, bnode.RelVars);
-      var implHooks = edges.Keys.Where(m => DependencyEvaluator.Depends(bnode, m));
+      var implHooks = edges.Keys.Where(m => DeclarationDependencies.Depends(bnode, m));
 
       var reachableDeclarations = ComputeReachability(p, implHooks).ToHashSet();
       var result = p.TopLevelDeclarations.Where(d => d is not Constant && d is not Axiom && d is not Function || reachableDeclarations.Contains(d));
       return result;
     }
     
-    static IEnumerable<Declaration> ComputeReachability(Program p, IEnumerable<DependencyEvaluator> implHooks)
+    static IEnumerable<Declaration> ComputeReachability(Program program, IEnumerable<DeclarationDependencies> implHooks)
     {
-      var edges = p.edges;
-      var todo = new Stack<DependencyEvaluator>(implHooks);
-      var visited = new HashSet<DependencyEvaluator>();
+      var edges = program.edges;
+      var todo = new Stack<DeclarationDependencies>(implHooks);
+      var visited = new HashSet<DeclarationDependencies>();
       while(todo.Any())
       {
         var d = todo.Pop();
@@ -111,7 +104,7 @@ namespace Microsoft.Boogie
         }
         visited.Add(d);
       }
-      return visited.Select(a => a.node);
+      return visited.Select(a => a.declaration);
     }
   }
 }
