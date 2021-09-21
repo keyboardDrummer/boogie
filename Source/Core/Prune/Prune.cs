@@ -86,7 +86,7 @@ namespace Microsoft.Boogie
       var implHooks = edges.Keys.Where(m => DeclarationDependencies.Depends(bnode, m));
 
       var reachableDeclarations = ComputeReachability(p, implHooks).ToHashSet();
-      var result = p.TopLevelDeclarations.Where(d => d is not Constant && d is not Axiom && d is not Function || reachableDeclarations.Contains(d));
+      var result = p.TopLevelDeclarations.Where(d => /*d is not Constant &&*/ d is not Axiom && d is not Function || reachableDeclarations.Contains(d));
       return result;
     }
     
