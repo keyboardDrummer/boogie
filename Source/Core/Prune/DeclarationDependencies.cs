@@ -22,6 +22,7 @@ namespace Microsoft.Boogie
 
     public readonly Declaration declaration; // a node could either be a function or an axiom.
     protected HashSet<Declaration> Outgoings { get; }
+    
     protected SetOfSets<Declaration> incomings;
     protected HashSet<Type> types;
 
