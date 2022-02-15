@@ -967,7 +967,7 @@ namespace Microsoft.Boogie
     public int LoopUnrollCount { get; set; } = -1; // -1 means don't unroll loops
     public bool SoundLoopUnrolling { get; set; }
     public int PrintErrorModel { get; set; }
-    public string PrintErrorModelFile { get; set; }
+    private string printErrorModelFile;
 
     public string /*?*/ ModelViewFile { get; set; }
 
@@ -1004,6 +1004,25 @@ namespace Microsoft.Boogie
     public bool SIBoolControlVC {
       get => siBoolControlVc;
       set => siBoolControlVc = value;
+    }
+
+    private TextWriter modelWriter;
+
+    public TextWriter ModelWriter
+    {
+      get
+      {
+        if (modelWriter != null) {
+          return modelWriter;
+        }
+
+        if (printErrorModelFile == null) {
+          return null;
+        }
+
+        modelWriter = new StreamWriter(printErrorModelFile, false);
+        return modelWriter;
+      }
     }
 
     public bool ExpandLambdas { get; set; } = true; // not useful from command line, only to be set to false programatically
@@ -1458,7 +1477,7 @@ namespace Microsoft.Boogie
         case "printModelToFile":
           if (ps.ConfirmArgumentCount(1))
           {
-            PrintErrorModelFile = args[ps.i];
+            printErrorModelFile = args[ps.i];
           }
 
           return true;
@@ -1949,11 +1968,12 @@ namespace Microsoft.Boogie
 
       base.ApplyDefaultOptions();
 
+
       // expand macros in filenames, now that LogPrefix is fully determined
       ExpandFilename(XmlSinkFilename, x => XmlSinkFilename = x, LogPrefix, FileTimestamp);
       ExpandFilename(PrintFile, x => PrintFile = x, LogPrefix, FileTimestamp);
       ExpandFilename(ProverLogFilePath, x => ProverLogFilePath = x, LogPrefix, FileTimestamp);
-      ExpandFilename(PrintErrorModelFile, x => PrintErrorModelFile = x, LogPrefix, FileTimestamp);
+      ExpandFilename(printErrorModelFile, x => printErrorModelFile = x, LogPrefix, FileTimestamp);
 
       Contract.Assume(XmlSink == null); // XmlSink is to be set here
       if (XmlSinkFilename != null)
