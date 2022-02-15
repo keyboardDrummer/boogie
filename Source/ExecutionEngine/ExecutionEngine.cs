@@ -718,7 +718,7 @@ namespace Microsoft.Boogie
           out stats.CachingActionCounts);
       }
 
-      var outcome = await VerifyEachImpl(options, program, stats, programId, er, requestId, stablePrioritizedImpls, extractLoopMappingInfo);
+      var outcome = await VerifyEachImplementation(options, program, stats, programId, er, requestId, stablePrioritizedImpls, extractLoopMappingInfo);
 
       if (1 < options.VerifySnapshots && programId != null)
       {
@@ -731,27 +731,21 @@ namespace Microsoft.Boogie
       return outcome;
     }
 
-    private static async Task<PipelineOutcome> VerifyEachImpl(ExecutionEngineOptions options, Program program, PipelineStatistics stats,
+    private static async Task<PipelineOutcome> VerifyEachImplementation(ExecutionEngineOptions options, Program program, PipelineStatistics stats,
       string programId, ErrorReporterDelegate er, string requestId, Implementation[] stablePrioritizedImpls,
       Dictionary<string, Dictionary<string, Block>> extractLoopMappingInfo)
     {
       var outputCollector = new OutputCollector(stablePrioritizedImpls);
-      var resultTasks = VerifyEachImplementation(options, program, stats, programId, er, requestId, stablePrioritizedImpls,
-        extractLoopMappingInfo);
+      program.DeclarationDependencies = Prune.ComputeDeclarationDependencies(program);
+
+      var cts = new CancellationTokenSource();
+      RequestIdToCancellationTokenSource.AddOrUpdate(requestId, cts, (k, ov) => cts);
+
+      var tasks = stablePrioritizedImpls.Select((impl, index) => VerifyImplementationWithLargeStackScheduler(index)).ToList();
       var outcome = PipelineOutcome.VerificationCompleted;
-      var tasksWithOutput = resultTasks.Select((task, index) =>
-      {
-        return task.ContinueWith(resultTask =>
-        {
-          var implementation = stablePrioritizedImpls[index];
-          var verificationResult = resultTask.Result;
-          var output = verificationResult.Process(options.Printer, options, stats, er, implementation);
-          outputCollector.Add(index, output);
-        });
-      });
 
       try {
-        await Task.WhenAll(tasksWithOutput);
+        await Task.WhenAll(tasks);
       }
       catch (AggregateException ae) {
         ae.Flatten().Handle(e =>
@@ -782,6 +776,34 @@ namespace Microsoft.Boogie
 
       outputCollector.WriteMoreOutput();
       return outcome;
+
+      async Task<VerificationResult> VerifyImplementationWithLargeStackScheduler(int index)
+      {
+        var implementation = stablePrioritizedImpls[index];
+        var id = implementation.Id;
+        if (ImplIdToCancellationTokenSource.TryGetValue(id, out var old)) {
+          old.Cancel();
+        }
+
+        try {
+          ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
+
+          var coreTask = new Task<VerificationResult>(() => VerifyImplementation(options, program, stats, er, requestId,
+            extractLoopMappingInfo, implementation,
+            programId).Result, cts.Token, TaskCreationOptions.None);
+
+          coreTask.Start(Scheduler);
+          var verificationResult = await coreTask.WaitAsync(CancellationToken.None);
+          var output = verificationResult.Process(options.Printer, options, stats, er, implementation);
+          outputCollector.Add(index, output);
+          outputCollector.WriteMoreOutput();
+          return verificationResult;
+        }
+        finally
+        {
+          ImplIdToCancellationTokenSource.TryRemove(id, out old);
+        }
+      }
     }
 
     private static Implementation[] GetPrioritizedImplementations(ExecutionEngineOptions options, Program program)
@@ -840,41 +862,6 @@ namespace Microsoft.Boogie
           Console.Out.WriteLine();
           Console.Out.WriteLine("Total time (ms) since first request: {0:F0}",
             end.Subtract(FirstRequestStart).TotalMilliseconds);
-        }
-      }
-    }
-
-    private static IReadOnlyList<Task<VerificationResult>> VerifyEachImplementation(ExecutionEngineOptions options, Program program,
-      PipelineStatistics stats, string programId, ErrorReporterDelegate er, string requestId,
-      Implementation[] stablePrioritizedImpls, Dictionary<string, Dictionary<string, Block>> extractLoopMappingInfo)
-    {
-      program.DeclarationDependencies = Prune.ComputeDeclarationDependencies(program);
-
-      var cts = new CancellationTokenSource();
-      RequestIdToCancellationTokenSource.AddOrUpdate(requestId, cts, (k, ov) => cts);
-
-      return stablePrioritizedImpls.Select((impl, index) => GetTask(index)).ToList();
-
-      async Task<VerificationResult> GetTask(int index)
-      {
-        var id = stablePrioritizedImpls[index].Id;
-        if (ImplIdToCancellationTokenSource.TryGetValue(id, out var old)) {
-          old.Cancel();
-        }
-
-        try {
-          ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
-
-          var coreTask = new Task<VerificationResult>(() => VerifyImplementation(options, program, stats, er, requestId,
-            extractLoopMappingInfo, stablePrioritizedImpls[index],
-            programId).Result, cts.Token, TaskCreationOptions.None);
-
-          coreTask.Start(Scheduler);
-          return await coreTask.WaitAsync(CancellationToken.None);
-        }
-        finally
-        {
-          ImplIdToCancellationTokenSource.TryRemove(id, out old);
         }
       }
     }
