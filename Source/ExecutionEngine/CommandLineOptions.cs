@@ -629,23 +629,31 @@ namespace Microsoft.Boogie
   /// </summary>
   public class CommandLineOptions : CommandLineOptionEngine, ExecutionEngineOptions
   {
+    private readonly Func<CommandLineOptions, OutputPrinter> getPrinter;
+
     public static CommandLineOptions FromArguments(params string[] arguments)
     {
-      var result = new CommandLineOptions();
+      return FromArguments(options => new ConsolePrinter(options));
+    }
+
+    public static CommandLineOptions FromArguments(Func<CommandLineOptions, OutputPrinter> getPrinter, params string[] arguments)
+    {
+      var result = new CommandLineOptions(getPrinter);
       result.Parse(arguments);
       return result;
     }
     
-    public CommandLineOptions()
-      : base("Boogie", "Boogie program verifier")
+    public CommandLineOptions(Func<CommandLineOptions, OutputPrinter> getPrinter)
+      : this("Boogie", "Boogie program verifier", getPrinter)
     {
     }
 
-    protected CommandLineOptions(string toolName, string descriptiveName)
+    protected CommandLineOptions(string toolName, string descriptiveName, Func<CommandLineOptions, OutputPrinter> getPrinter)
       : base(toolName, descriptiveName)
     {
       Contract.Requires(toolName != null);
       Contract.Requires(descriptiveName != null);
+      this.getPrinter = getPrinter;
     }
 
     public static void Install(CoreOptions options)
@@ -922,6 +930,21 @@ namespace Microsoft.Boogie
     public bool AlwaysAssumeFreeLoopInvariants { get; set; }
 
     public ExecutionEngineOptions.ShowEnvironment ShowEnv { get; set; } = ExecutionEngineOptions.ShowEnvironment.DuringPrint;
+
+    private OutputPrinter printer;
+
+    public OutputPrinter Printer
+    {
+      get
+      {
+        if (printer == null) {
+          printer = getPrinter(this);
+        }
+
+        return printer;
+      }
+    }
+
     public bool ShowVerifiedProcedureCount { get; set; } = true;
 
     [ContractInvariantMethod]

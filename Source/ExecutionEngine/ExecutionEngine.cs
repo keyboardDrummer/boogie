@@ -216,9 +216,7 @@ namespace Microsoft.Boogie
 
   public class ExecutionEngine
   {
-    public static OutputPrinter printer;
-
-    public static ErrorInformationFactory errorInformationFactory = new ErrorInformationFactory();
+    public static ErrorInformationFactory errorInformationFactory = new();
 
     static int autoRequestIdCount;
 
@@ -344,7 +342,7 @@ namespace Microsoft.Boogie
       switch (oc) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
-          printer.WriteTrailer(stats);
+          options.Printer.WriteTrailer(stats);
           return true;
         case PipelineOutcome.FatalError:
           return false;
@@ -487,7 +485,7 @@ namespace Microsoft.Boogie
         }
         catch (IOException e)
         {
-          printer.ErrorWriteLine(Console.Out, "Error opening file \"{0}\": {1}", GetFileNameForConsole(options, bplFileName),
+          options.Printer.ErrorWriteLine(Console.Out, "Error opening file \"{0}\": {1}", GetFileNameForConsole(options, bplFileName),
             e.Message);
           okay = false;
         }
@@ -880,7 +878,7 @@ namespace Microsoft.Boogie
         {
           if (e is ProverException)
           {
-            printer.ErrorWriteLine(Console.Out, "Fatal Error: ProverException: {0}", e.Message);
+            options.Printer.ErrorWriteLine(Console.Out, "Fatal Error: ProverException: {0}", e.Message);
             outcome = PipelineOutcome.FatalError;
             return true;
           }
@@ -999,8 +997,8 @@ namespace Microsoft.Boogie
       VerificationResult verificationResult = null;
       var output = new StringWriter();
 
-      printer.Inform("", output); // newline
-      printer.Inform(string.Format("Verifying {0} ...", impl.Name), output);
+      options.Printer.Inform("", output); // newline
+      options.Printer.Inform(string.Format("Verifying {0} ...", impl.Name), output);
 
       int priority = 0;
       var wasCached = false;
@@ -1014,7 +1012,7 @@ namespace Microsoft.Boogie
             options.XmlSink.WriteStartMethod(impl.Name, cachedResults.Start);
           }
 
-          printer.Inform(string.Format("Retrieving cached verification result for implementation {0}...", impl.Name),
+          options.Printer.Inform(string.Format("Retrieving cached verification result for implementation {0}...", impl.Name),
             output);
           if (options.VerifySnapshots < 3 ||
               cachedResults.Outcome == ConditionGeneration.Outcome.Correct)
@@ -1061,7 +1059,7 @@ namespace Microsoft.Boogie
             var errorInfo = errorInformationFactory.CreateErrorInformation(impl.tok,
               String.Format("{0} (encountered in implementation {1}).", e.Message, impl.Name), requestId, "Error");
             errorInfo.ImplementationName = impl.Name;
-            printer.WriteErrorInformation(errorInfo, output);
+            options.Printer.WriteErrorInformation(errorInfo, output);
             if (er != null)
             {
               lock (er)
@@ -1079,7 +1077,7 @@ namespace Microsoft.Boogie
           }
           catch (UnexpectedProverOutputException upo)
           {
-            printer.AdvisoryWriteLine("Advisory: {0} SKIPPED because of internal error: unexpected prover output: {1}",
+            options.Printer.AdvisoryWriteLine("Advisory: {0} SKIPPED because of internal error: unexpected prover output: {1}",
               impl.Name, upo.Message);
             verificationResult.Errors = null;
             verificationResult.Outcome = VCGen.Outcome.Inconclusive;
@@ -1090,7 +1088,7 @@ namespace Microsoft.Boogie
             {
               if (e is IOException)
               {
-                printer.AdvisoryWriteLine("Advisory: {0} SKIPPED due to I/O exception: {1}",
+                options.Printer.AdvisoryWriteLine("Advisory: {0} SKIPPED due to I/O exception: {1}",
                   impl.Name, e.Message);
                 verificationResult.Errors = null;
                 verificationResult.Outcome = VCGen.Outcome.SolverException;
@@ -1326,7 +1324,7 @@ namespace Microsoft.Boogie
 
       UpdateStatistics(stats, outcome, errors, wasCached);
 
-      printer.Inform(timeIndication + OutcomeIndication(outcome, errors), tw);
+      options.Printer.Inform(timeIndication + OutcomeIndication(outcome, errors), tw);
 
       ReportOutcome(options, outcome, er, implName, implTok, requestId, msgIfVerifies, tw, timeLimit, errors);
     }
@@ -1470,7 +1468,7 @@ namespace Microsoft.Boogie
         }
         else
         {
-          printer.WriteErrorInformation(errorInfo, tw);
+          options.Printer.WriteErrorInformation(errorInfo, tw);
         }
       }
     }
@@ -1636,7 +1634,7 @@ namespace Microsoft.Boogie
             error.PrintModel(errorInfo.Model, error);
           }
 
-          printer.WriteErrorInformation(errorInfo, tw);
+          options.Printer.WriteErrorInformation(errorInfo, tw);
 
           if (er != null)
           {
