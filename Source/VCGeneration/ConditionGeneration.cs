@@ -8,6 +8,7 @@ using Microsoft.Boogie;
 using Microsoft.Boogie.GraphUtil;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Set = Microsoft.Boogie.GSet<object>;
 
 namespace VC
@@ -23,7 +24,7 @@ namespace VC
   [ContractClassFor(typeof(ConditionGeneration))]
   public abstract class ConditionGenerationContracts : ConditionGeneration
   {
-    public override Outcome VerifyImplementation(Implementation impl, VerifierCallback callback,
+    public override Task<Outcome> VerifyImplementation(Implementation impl, VerifierCallback callback,
       CancellationToken cancellationToken)
     {
       Contract.Requires(impl != null);
@@ -114,7 +115,7 @@ namespace VC
     /// each counterexample consisting of an array of labels.
     /// </summary>
     /// <param name="impl"></param>
-    public Outcome VerifyImplementation(Implementation impl, out List<Counterexample> /*?*/ errors,
+    public async Task<Outcome> VerifyImplementation(Implementation impl, List<Counterexample> /*?*/ errors,
       string requestId, CancellationToken cancellationToken)
     {
       Contract.Requires(impl != null);
@@ -127,15 +128,11 @@ namespace VC
 
       CounterexampleCollector collector = new CounterexampleCollector(Options);
       collector.RequestId = requestId;
-      Outcome outcome = VerifyImplementation(impl, collector, cancellationToken);
+      Outcome outcome = await VerifyImplementation(impl, collector, cancellationToken);
       if (outcome == Outcome.Errors || outcome == Outcome.TimedOut || outcome == Outcome.OutOfMemory ||
           outcome == Outcome.OutOfResource)
       {
-        errors = collector.examples;
-      }
-      else
-      {
-        errors = null;
+        errors.AddRange(collector.examples);
       }
 
       Helpers.ExtraTraceInformation("Finished implementation verification");
@@ -144,7 +141,7 @@ namespace VC
 
     private VCGenOptions Options => CheckerPool.Options;
 
-    public abstract Outcome VerifyImplementation(Implementation impl, VerifierCallback callback,
+    public abstract Task<Outcome> VerifyImplementation(Implementation impl, VerifierCallback callback,
       CancellationToken cancellationToken);
 
     /////////////////////////////////// Common Methods and Classes //////////////////////////////////////////
