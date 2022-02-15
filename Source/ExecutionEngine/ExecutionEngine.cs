@@ -718,9 +718,27 @@ namespace Microsoft.Boogie
           out stats.CachingActionCounts);
       }
 
-      var resultTasks = VerifyEachImplementation(options, program, stats, programId, er, requestId, stablePrioritizedImpls, extractLoopMappingInfo);
-      var outcome = PipelineOutcome.VerificationCompleted;
+      var outcome = await VerifyEachImpl(options, program, stats, programId, er, requestId, stablePrioritizedImpls, extractLoopMappingInfo);
+
+      if (1 < options.VerifySnapshots && programId != null)
+      {
+        program.FreezeTopLevelDeclarations();
+        programCache.Set(programId, program, policy);
+      }
+
+      TraceCachingForBenchmarking(options, stats, requestId, start);
+
+      return outcome;
+    }
+
+    private static async Task<PipelineOutcome> VerifyEachImpl(ExecutionEngineOptions options, Program program, PipelineStatistics stats,
+      string programId, ErrorReporterDelegate er, string requestId, Implementation[] stablePrioritizedImpls,
+      Dictionary<string, Dictionary<string, Block>> extractLoopMappingInfo)
+    {
       var outputCollector = new OutputCollector(stablePrioritizedImpls);
+      var resultTasks = VerifyEachImplementation(options, program, stats, programId, er, requestId, stablePrioritizedImpls,
+        extractLoopMappingInfo);
+      var outcome = PipelineOutcome.VerificationCompleted;
       var tasksWithOutput = resultTasks.Select((task, index) =>
       {
         return task.ContinueWith(resultTask =>
@@ -756,23 +774,13 @@ namespace Microsoft.Boogie
         CleanupCheckers(requestId);
       }
 
-      if (options.PrintNecessaryAssumes && program.NecessaryAssumes.Any())
-      {
+      if (options.PrintNecessaryAssumes && program.NecessaryAssumes.Any()) {
         Console.WriteLine("Necessary assume command(s): {0}", string.Join(", ", program.NecessaryAssumes));
       }
 
       cce.NonNull(options.TheProverFactory).Close();
 
       outputCollector.WriteMoreOutput();
-
-      if (1 < options.VerifySnapshots && programId != null)
-      {
-        program.FreezeTopLevelDeclarations();
-        programCache.Set(programId, program, policy);
-      }
-
-      TraceCachingForBenchmarking(options, stats, requestId, start);
-
       return outcome;
     }
 
