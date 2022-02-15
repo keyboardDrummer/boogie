@@ -915,9 +915,6 @@ namespace Microsoft.Boogie
       var cts = new CancellationTokenSource();
       RequestIdToCancellationTokenSource.AddOrUpdate(requestId, cts, (k, ov) => cts);
 
-      // We use this semaphore to limit the number of tasks that are currently executing.
-      var semaphore = new SemaphoreSlim(options.VcsCores);
-
       return stablePrioritizedImpls.Select((impl, index) => GetTask(index)).ToList();
 
       async Task<VerificationResult> GetTask(int index)
@@ -928,8 +925,6 @@ namespace Microsoft.Boogie
         }
 
         try {
-          // await semaphore.WaitAsync(cts.Token); // Does the semaphore release if the token is cancelled?
-
           ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
 
           var coreTask = new Task<VerificationResult>(() => VerifyImplementation(options, program, stats, er, requestId,
@@ -942,7 +937,6 @@ namespace Microsoft.Boogie
         finally
         {
           ImplIdToCancellationTokenSource.TryRemove(id, out old);
-          semaphore.Release();
         }
       }
     }
