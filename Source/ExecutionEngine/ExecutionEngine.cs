@@ -915,44 +915,36 @@ namespace Microsoft.Boogie
       var cts = new CancellationTokenSource();
       RequestIdToCancellationTokenSource.AddOrUpdate(requestId, cts, (k, ov) => cts);
 
-      var tasks = new Task<VerificationResult>[stablePrioritizedImpls.Length];
       // We use this semaphore to limit the number of tasks that are currently executing.
       var semaphore = new SemaphoreSlim(options.VcsCores);
 
-      // Create a task per implementation.
-      for (int index = 0; index < stablePrioritizedImpls.Length; index++) {
-        var id = stablePrioritizedImpls[index].Id;
+      return stablePrioritizedImpls.Select((impl, index) => GetTask(index)).ToList();
 
+      async Task<VerificationResult> GetTask(int index)
+      {
+        var id = stablePrioritizedImpls[index].Id;
         if (ImplIdToCancellationTokenSource.TryGetValue(id, out var old)) {
           old.Cancel();
         }
 
-        async Task<VerificationResult> GetTask()
-        {
+        try {
+          // await semaphore.WaitAsync(cts.Token); // Does the semaphore release if the token is cancelled?
 
-          try {
-            await semaphore.WaitAsync(cts.Token); // Does the semaphore release if the token is cancelled?
+          ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
 
-            ImplIdToCancellationTokenSource.AddOrUpdate(id, cts, (k, ov) => cts);
+          var coreTask = new Task<VerificationResult>(() => VerifyImplementation(options, program, stats, er, requestId,
+            extractLoopMappingInfo, stablePrioritizedImpls[index],
+            programId).Result, cts.Token, TaskCreationOptions.None);
 
-            var coreTask = new Task<VerificationResult>(() => VerifyImplementation(options, program, stats, er, requestId,
-              extractLoopMappingInfo, stablePrioritizedImpls[index],
-              programId).Result, cts.Token, TaskCreationOptions.None);
-
-            coreTask.Start(Scheduler);
-            return await coreTask.WaitAsync(CancellationToken.None);
-          }
-          finally
-          {
-            ImplIdToCancellationTokenSource.TryRemove(id, out old);
-            semaphore.Release();
-          }
+          coreTask.Start(Scheduler);
+          return await coreTask.WaitAsync(CancellationToken.None);
         }
-
-        tasks[index] = GetTask();
+        finally
+        {
+          ImplIdToCancellationTokenSource.TryRemove(id, out old);
+          semaphore.Release();
+        }
       }
-
-      return tasks;
     }
 
     public static void CancelRequest(string requestId)
