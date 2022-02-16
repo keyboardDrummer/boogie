@@ -267,8 +267,8 @@ namespace Microsoft.Boogie
         PrintBplFile(options, options.PrintFile, program, false, true, options.PrettyPrint);
       }
 
-      PipelineOutcome oc = ResolveAndTypecheck(options, program, bplFileName, out var civlTypeChecker);
-      if (oc != PipelineOutcome.ResolvedAndTypeChecked) {
+      PipelineOutcome outcome = ResolveAndTypecheck(options, program, bplFileName, out var civlTypeChecker);
+      if (outcome != PipelineOutcome.ResolvedAndTypeChecked) {
         return true;
       }
 
@@ -295,8 +295,8 @@ namespace Microsoft.Boogie
       Inline(options, program);
 
       var stats = new PipelineStatistics();
-      oc = InferAndVerify(options, program, stats, 1 < options.VerifySnapshots ? programId : null).Result;
-      switch (oc) {
+      outcome = InferAndVerify(options, program, stats, 1 < options.VerifySnapshots ? programId : null).Result;
+      switch (outcome) {
         case PipelineOutcome.Done:
         case PipelineOutcome.VerificationCompleted:
           options.Printer.WriteTrailer(stats);
@@ -901,26 +901,26 @@ namespace Microsoft.Boogie
       PipelineStatistics stats,
       ErrorReporterDelegate er,
       string requestId, Dictionary<string, Dictionary<string, Block>> extractLoopMappingInfo,
-      Implementation impl,
+      Implementation implementation,
       string programId)
     {
       var output = new StringWriter();
 
       options.Printer.Inform("", output); // newline
-      options.Printer.Inform($"Verifying {impl.Name} ...", output);
+      options.Printer.Inform($"Verifying {implementation.Name} ...", output);
 
-      VerificationResult verificationResult = GetCachedVerificationResult(options, impl, output);
+      VerificationResult verificationResult = GetCachedVerificationResult(options, implementation, output);
       if (verificationResult != null)
       {
         return verificationResult;
       }
 
       verificationResult = await VerifyImplementationWithoutCaching(options, program, stats, er, requestId,
-        extractLoopMappingInfo, checkerPool, programId, impl, output);
+        extractLoopMappingInfo, checkerPool, programId, implementation, output);
 
-      if (0 < options.VerifySnapshots && !string.IsNullOrEmpty(impl.Checksum))
+      if (0 < options.VerifySnapshots && !string.IsNullOrEmpty(implementation.Checksum))
       {
-        Cache.Insert(impl, verificationResult);
+        Cache.Insert(implementation, verificationResult);
       }
 
       return verificationResult;
