@@ -229,7 +229,7 @@ namespace Microsoft.Boogie
     static readonly ConcurrentDictionary<string, CancellationTokenSource> RequestIdToCancellationTokenSource =
       new ConcurrentDictionary<string, CancellationTokenSource>();
 
-    static ThreadTaskScheduler Scheduler = new ThreadTaskScheduler(16 * 1024 * 1024);
+    static ThreadTaskScheduler LargeStackScheduler = new ThreadTaskScheduler(16 * 1024 * 1024);
 
     public static bool ProcessFiles(ExecutionEngineOptions options, IList<string> fileNames, bool lookForSnapshots = true, string programId = null)
     {
@@ -731,7 +731,8 @@ namespace Microsoft.Boogie
       return outcome;
     }
 
-    private static async Task<PipelineOutcome> VerifyEachImplementation(ExecutionEngineOptions options, Program program, PipelineStatistics stats,
+    private static async Task<PipelineOutcome> VerifyEachImplementation(ExecutionEngineOptions options,
+      Program program, PipelineStatistics stats,
       string programId, ErrorReporterDelegate er, string requestId, Implementation[] stablePrioritizedImpls,
       Dictionary<string, Dictionary<string, Block>> extractLoopMappingInfo)
     {
@@ -792,7 +793,7 @@ namespace Microsoft.Boogie
             extractLoopMappingInfo, implementation,
             programId).Result, cts.Token, TaskCreationOptions.None);
 
-          coreTask.Start(Scheduler);
+          coreTask.Start(LargeStackScheduler);
           var verificationResult = await coreTask.WaitAsync(CancellationToken.None);
           var output = verificationResult.Process(options.Printer, options, stats, er, implementation);
           outputCollector.Add(index, output);
