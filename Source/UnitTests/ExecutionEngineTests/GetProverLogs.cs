@@ -18,7 +18,6 @@ public static class GetProverLogs
     
   public static IEnumerable<string> GetProverLogsForProgram(ExecutionEngineOptions options, string procedure1)
   {
-    ExecutionEngine.printer = new ConsolePrinter(options);
     var defines = new List<string>() { "FILE_0" };
 
     // Parse error are printed to StdOut :/

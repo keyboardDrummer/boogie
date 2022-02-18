@@ -15,7 +15,6 @@ namespace ExecutionEngineTests
         options.UseBaseNameForFileName);
       Assert.AreEqual(0, errorCount);
 
-      ExecutionEngine.printer = new ConsolePrinter(options);
       ExecutionEngine.ResolveAndTypecheck(options, program, bplFileName, out _);
       ExecutionEngine.EliminateDeadVariables(program);
       ExecutionEngine.CollectModSets(options, program);
