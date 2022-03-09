@@ -47,8 +47,8 @@ public sealed class VerificationResult
     MessageIfVerifies = implementation.FindStringAttribute("msg_if_verifies");
   }
 
-  public void Emit(ExecutionEngine engine, PipelineStatistics stats, ErrorReporterDelegate er, int index,
-    OutputCollector outputCollector, StringWriter output, Implementation impl, bool wasCached)
+  public void Emit(ExecutionEngine engine, PipelineStatistics stats, ErrorReporterDelegate er, TextWriter output,
+    Implementation impl, bool wasCached)
   {
     engine.ProcessOutcome(Outcome, Errors, engine.TimeIndication(this), stats,
       output, impl.GetTimeLimit(engine.Options), er, ImplementationName,
@@ -70,14 +70,6 @@ public sealed class VerificationResult
           End, End - Start,
           ResourceCount);
       }
-    }
-
-    outputCollector.Add(index, output);
-
-    outputCollector.WriteMoreOutput();
-
-    if (Outcome == VCGen.Outcome.Errors || engine.Options.Trace) {
-      Console.Out.Flush();
     }
   }
 }
