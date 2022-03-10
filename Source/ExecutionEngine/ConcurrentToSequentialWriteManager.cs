@@ -3,6 +3,10 @@ using System.IO;
 
 namespace Microsoft.Boogie;
 
+/// <summary>
+/// Enables creating multiple TextWriters that can be written to concurrently,
+/// but whose output shows up in a target TextWriter in the same order as the TextWriters were created.
+/// </summary>
 public class ConcurrentToSequentialWriteManager
 {
   public TextWriter Writer { get; }
