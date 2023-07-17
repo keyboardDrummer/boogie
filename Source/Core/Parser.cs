@@ -22,6 +22,7 @@ using Bpl = Microsoft.Boogie;
 using System;
 using System.Diagnostics.Contracts;
 using System.Reflection;
+using Microsoft.Dafny;
 
 namespace Microsoft.Boogie {
 
@@ -607,7 +608,7 @@ private class BvBounds : Expr {
 				SpecAction(ref refinedAction, ref invariantAction, mods, creates, elims);
 			}
 			ImplBody(out locals, out stmtList);
-			impl = new Implementation(name, name.val, new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
+			impl = new Implementation(name, new Name(name), new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
 			                              locals, stmtList, kv == null ? null : (QKeyValue)kv.Clone(), this.errors);
 			
 		} else SynErr(124);

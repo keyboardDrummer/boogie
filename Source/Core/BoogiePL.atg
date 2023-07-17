@@ -677,7 +677,7 @@ ActionDecl<out ActionDecl actionDecl, out Implementation impl, out DatatypeTypeC
   | { SpecAction<ref refinedAction, ref invariantAction, mods, creates, elims> }
     ImplBody<out locals, out stmtList>
     (.
-       impl = new Implementation(name, name.val, new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
+       impl = new Implementation(name, new Name(name), new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
                                       locals, stmtList, kv == null ? null : (QKeyValue)kv.Clone(), this.errors);
     .)
   )
@@ -781,7 +781,7 @@ YieldProcedureDecl<out YieldProcedureDecl ypDecl, out Implementation impl>
     | { SpecYieldPrePost<ref refinedAction, pre, post, yieldRequires, yieldEnsures, yieldPreserves, mods> }
       ImplBody<out locals, out stmtList>
       (.
-         impl = new Implementation(name, name.val, new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
+         impl = new Implementation(name, new Name(name), new List<TypeVariable>(), Formal.StripWhereClauses(ins), Formal.StripWhereClauses(outs),
                                    locals, stmtList, kv == null ? null : (QKeyValue)kv.Clone(), this.errors);
       .)
     )
